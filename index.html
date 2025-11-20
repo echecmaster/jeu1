@@ -3,278 +3,504 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crusher Clicker</title>
+    <title>Bamboo Clicker 🎋</title>
     <style>
+        /* --- Styles Généraux --- */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #222;
-            color: #FFF;
+            font-family: 'Arial', sans-serif;
+            background-color: #2c3e50; /* Fond sombre */
+            color: #ecf0f1; /* Texte clair */
             margin: 0;
-            padding: 20px;
-            text-align: center;
-            user-select: none; /* Empêche de sélectionner le texte en cliquant vite */
+            padding: 0;
+            overflow: hidden; /* Empêche le défilement */
+            user-select: none; /* Empêche la sélection de texte */
         }
 
-        h1 {
-            color: #FFD700; /* Couleur or */
-        }
-
-        /* Conteneur principal qui sépare le jeu et la boutique */
+        /* --- Conteneur Principal --- */
         #game-container {
             display: flex;
-            flex-wrap: wrap; /* Pour les petits écrans */
+            height: 100vh;
+        }
+
+        /* --- Section de Gauche (Clic) --- */
+        #clicker-section {
+            flex: 2; /* Prend 2/3 de la largeur */
+            display: flex;
+            flex-direction: column;
             justify-content: center;
-            gap: 40px;
-        }
-
-        /* Zone de clic (gauche) */
-        #crusher-area {
-            flex-basis: 400px;
+            align-items: center;
+            background-color: #34495e;
             padding: 20px;
-            background-color: #333;
-            border-radius: 10px;
-            position: relative; /* Pour les textes flottants */
-            overflow: hidden; /* Cache les textes qui sortent */
-        }
-
-        /* Le rocher à cliquer */
-        #crush-target {
-            font-size: 150px; /* Un gros emoji */
-            cursor: pointer;
-            transition: transform 0.05s ease;
-        }
-
-        /* Effet de "secousse" au clic */
-        #crush-target:active {
-            transform: scale(0.95);
+            border-right: 4px solid #2c3e50;
         }
 
         #score-display {
-            font-size: 2.5em;
+            font-size: 4em;
+            font-weight: bold;
+        }
+
+        #bps-display {
+            font-size: 1.5em;
+            color: #95a5a6;
+            margin-top: -10px;
+        }
+
+        #bamboo-clicker {
+            font-size: 15em; /* Emoji géant */
+            cursor: pointer;
             margin-top: 20px;
+            transition: transform 0.05s ease;
         }
 
-        /* Boutique (droite) */
-        #store-area {
-            flex-basis: 300px;
+        /* Effet de clic */
+        #bamboo-clicker:active {
+            transform: scale(0.95);
+        }
+
+        /* --- Section de Droite (Boutique) --- */
+        #store-section {
+            flex: 1; /* Prend 1/3 de la largeur */
+            background-color: #2c3e50;
             padding: 20px;
-            background-color: #444;
-            border-radius: 10px;
+            overflow-y: auto; /* Permet de scroller si la boutique est grande */
         }
 
-        #store-area h2 {
-            border-bottom: 2px solid #FFD700;
+        #store-section h2 {
+            text-align: center;
+            border-bottom: 2px solid #34495e;
             padding-bottom: 10px;
         }
 
-        /* Style des boutons d'amélioration */
-        .upgrade-button {
-            width: 100%;
+        .store-item {
+            background-color: #34495e;
+            border: 2px solid #4a6580;
+            border-radius: 8px;
             padding: 15px;
-            margin-top: 10px;
-            font-size: 1em;
-            background-color: #55aaff;
-            border: none;
-            border-radius: 5px;
+            margin-bottom: 10px;
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
-        .upgrade-button:hover:not(:disabled) {
-            background-color: #77ccff;
+        .store-item:hover:not(:disabled) {
+            background-color: #4a6580;
         }
 
-        /* Style quand un bouton n'est pas achetable */
-        .upgrade-button:disabled {
-            background-color: #555;
-            color: #999;
+        /* Style pour les boutons désactivés */
+        .store-item:disabled {
+            background-color: #2a3a4a;
+            color: #7f8c8d;
             cursor: not-allowed;
+            border-color: #2a3a4a;
         }
 
-        /* Style pour les petits textes "+1" qui apparaissent */
-        .floating-text {
+        .item-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1em;
+        }
+
+        .item-name {
+            font-weight: bold;
+        }
+
+        .item-cost {
+            font-weight: bold;
+            color: #1abc9c; /* Vert */
+        }
+
+        .item-details {
+            font-size: 0.9em;
+            color: #bdc3c7;
+            margin-top: 5px;
+        }
+
+        .item-count {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #e67e22; /* Orange */
+        }
+
+        /* --- Boutons de Sauvegarde/Reset --- */
+        #game-controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        #game-controls button {
+            padding: 10px 15px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #save-button {
+            background-color: #27ae60; /* Vert */
+            color: white;
+        }
+        #save-button:hover {
+            background-color: #2ecc71;
+        }
+
+        #reset-button {
+            background-color: #c0392b; /* Rouge */
+            color: white;
+        }
+        #reset-button:hover {
+            background-color: #e74c3c;
+        }
+        
+        /* Animation de feedback de clic */
+        .click-feedback {
             position: absolute;
-            font-size: 1.5em;
-            color: #FFD700;
+            font-size: 2em;
+            color: #ecf0f1;
             opacity: 1;
-            animation: fadeOut 1s forwards;
-            pointer-events: none; /* N'empêche pas de cliquer sur le rocher */
+            animation: fadeOutUp 1s forwards;
+            pointer-events: none; /* N'intercepte pas les clics */
         }
 
-        /* Animation du texte flottant */
-        @keyframes fadeOut {
+        @keyframes fadeOutUp {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
             to {
-                transform: translateY(-50px);
                 opacity: 0;
+                transform: translateY(-50px);
             }
         }
+
     </style>
 </head>
 <body>
 
-    <h1>Crusher Clicker 🪨</h1>
-
     <div id="game-container">
-
-        <div id="crusher-area">
-            <h2>Cliquez sur le rocher !</h2>
-            <div id="crush-target">🪨</div>
-            <div id="score-display">
-                <span id="score">0</span> Fragments
+        
+        <div id="clicker-section">
+            <div id="score-container">
+                <div id="score-display">0</div>
+                <div id="bps-display">par seconde : 0</div>
             </div>
-            <div id="fps-display">0 fragments / sec</div>
+            <div id="bamboo-clicker">🎋</div>
         </div>
 
-        <div id="store-area">
+        <div id="store-section">
             <h2>Boutique</h2>
 
-            <button id="upgrade-click" class="upgrade-button">
-                Meilleure Pioche (Coût: 10)
-                <span>+1 par clic</span>
+            <button class="store-item" id="buy-click-power">
+                <div class="item-info">
+                    <div>
+                        <span class="item-name">Panda Travailleur</span>
+                        <div class="item-details">+1 bambou par clic</div>
+                    </div>
+                    <div>
+                        <span class="item-cost" id="click-power-cost">15</span> 🎍
+                    </div>
+                </div>
+                <div class="item-count" id="click-power-count">x0</div>
             </button>
 
-            <button id="upgrade-auto1" class="upgrade-button">
-                Petite Foreuse (Coût: 50)
-                <span>+1 / sec</span>
+            <button class="store-item" id="buy-auto-1">
+                <div class="item-info">
+                    <div>
+                        <span class="item-name">Petit Bosquet</span>
+                        <div class="item-details">+1 bambou par seconde</div>
+                    </div>
+                    <div>
+                        <span class="item-cost" id="auto-1-cost">100</span> 🎍
+                    </div>
+                </div>
+                <div class="item-count" id="auto-1-count">x0</div>
+            </button>
+
+            <button class="store-item" id="buy-auto-2">
+                <div class="item-info">
+                    <div>
+                        <span class="item-name">Forêt de Bambous</span>
+                        <div class="item-details">+8 bambous par seconde</div>
+                    </div>
+                    <div>
+                        <span class="item-cost" id="auto-2-cost">1100</span> 🎍
+                    </div>
+                </div>
+                <div class="item-count" id="auto-2-count">x0</div>
             </button>
             
-            <button id="upgrade-auto2" class="upgrade-button">
-                Concasseur Auto (Coût: 500)
-                <span>+10 / sec</span>
+            <button class="store-item" id="buy-auto-3">
+                <div class="item-info">
+                    <div>
+                        <span class="item-name">Plantation Magique</span>
+                        <div class="item-details">+47 bambous par seconde</div>
+                    </div>
+                    <div>
+                        <span class="item-cost" id="auto-3-cost">12000</span> 🎍
+                    </div>
+                </div>
+                <div class="item-count" id="auto-3-count">x0</div>
             </button>
-        </div>
+            
+            <button class="store-item" id="buy-auto-4">
+                <div class="item-info">
+                    <div>
+                        <span class="item-name">Dieu Panda</span>
+                        <div class="item-details">+260 bambous par seconde</div>
+                    </div>
+                    <div>
+                        <span class="item-cost" id="auto-4-cost">130000</span> 🎍
+                    </div>
+                </div>
+                <div class="item-count" id="auto-4-count">x0</div>
+            </button>
 
+            <div id="game-controls">
+                <button id="save-button">Sauvegarder</button>
+                <button id="reset-button">Réinitialiser</button>
+            </div>
+
+        </div>
     </div>
 
     <script>
-        // --- Variables de l'état du jeu ---
-        let fragments = 0;
-        let fragmentsPerClick = 1;
-        let fragmentsPerSecond = 0;
+        // Attend que le DOM soit chargé
+        document.addEventListener('DOMContentLoaded', () => {
 
-        // --- Coûts initiaux des améliorations ---
-        let clickUpgradeCost = 10;
-        let auto1UpgradeCost = 50;
-        let auto2UpgradeCost = 500;
+            // --- VARIABLES PRINCIPALES DU JEU ---
+            let bamboos = 0;
+            let bamboosPerSecond = 0;
+            let clickPower = 1;
 
-        // --- Références aux éléments HTML ---
-        const crushTarget = document.getElementById('crush-target');
-        const scoreDisplay = document.getElementById('score');
-        const fpsDisplay = document.getElementById('fps-display');
-        const crusherArea = document.getElementById('crusher-area');
-
-        const clickUpgradeBtn = document.getElementById('upgrade-click');
-        const auto1UpgradeBtn = document.getElementById('upgrade-auto1');
-        const auto2UpgradeBtn = document.getElementById('upgrade-auto2');
-
-        // --- Fonctions principales du jeu ---
-
-        /**
-         * Appelé à chaque clic sur le rocher
-         */
-        function crushRock(event) {
-            fragments += fragmentsPerClick;
-            updateUI();
-            showFloatingText(event);
-        }
-
-        /**
-         * Affiche le texte flottant "+X" lors d'un clic
-         */
-        function showFloatingText(event) {
-            const text = document.createElement('div');
-            text.textContent = `+${fragmentsPerClick}`;
-            text.className = 'floating-text';
+            // --- STRUCTURES DES AMÉLIORATIONS ---
+            // Utiliser des objets rend la gestion plus facile
+            const upgrades = {
+                clickPower: {
+                    name: "Panda Travailleur",
+                    cost: 15,
+                    count: 0,
+                    baseCost: 15,
+                    power: 1
+                },
+                auto1: {
+                    name: "Petit Bosquet",
+                    cost: 100,
+                    count: 0,
+                    baseCost: 100,
+                    bps: 1
+                },
+                auto2: {
+                    name: "Forêt de Bambous",
+                    cost: 1100,
+                    count: 0,
+                    baseCost: 1100,
+                    bps: 8
+                },
+                auto3: {
+                    name: "Plantation Magique",
+                    cost: 12000,
+                    count: 0,
+                    baseCost: 12000,
+                    bps: 47
+                },
+                auto4: {
+                    name: "Dieu Panda",
+                    cost: 130000,
+                    count: 0,
+                    baseCost: 130000,
+                    bps: 260
+                }
+            };
             
-            // Positionne le texte là où l'utilisateur a cliqué
-            text.style.left = `${event.clientX - crusherArea.getBoundingClientRect().left}px`;
-            text.style.top = `${event.clientY - crusherArea.getBoundingClientRect().top}px`;
+            // --- RÉFÉRENCES DOM (pour éviter de les chercher tout le temps) ---
+            const bambooClicker = document.getElementById('bamboo-clicker');
+            const scoreDisplay = document.getElementById('score-display');
+            const bpsDisplay = document.getElementById('bps-display');
+            
+            const storeButtons = {
+                clickPower: document.getElementById('buy-click-power'),
+                auto1: document.getElementById('buy-auto-1'),
+                auto2: document.getElementById('buy-auto-2'),
+                auto3: document.getElementById('buy-auto-3'),
+                auto4: document.getElementById('buy-auto-4'),
+            };
 
-            crusherArea.appendChild(text);
+            const costDisplays = {
+                clickPower: document.getElementById('click-power-cost'),
+                auto1: document.getElementById('auto-1-cost'),
+                auto2: document.getElementById('auto-2-cost'),
+                auto3: document.getElementById('auto-3-cost'),
+                auto4: document.getElementById('auto-4-cost'),
+            };
 
-            // Supprime l'élément après l'animation
-            setTimeout(() => {
-                text.remove();
-            }, 1000);
-        }
+            const countDisplays = {
+                clickPower: document.getElementById('click-power-count'),
+                auto1: document.getElementById('auto-1-count'),
+                auto2: document.getElementById('auto-2-count'),
+                auto3: document.getElementById('auto-3-count'),
+                auto4: document.getElementById('auto-4-count'),
+            };
 
-        /**
-         * Gère l'achat de l'amélioration du clic
-         */
-        function buyClickUpgrade() {
-            if (fragments >= clickUpgradeCost) {
-                fragments -= clickUpgradeCost;      // Payer le coût
-                fragmentsPerClick += 1;             // Augmenter le gain par clic
-                clickUpgradeCost = Math.ceil(clickUpgradeCost * 1.25); // Augmenter le coût
+            const saveButton = document.getElementById('save-button');
+            const resetButton = document.getElementById('reset-button');
+
+            // --- FONCTIONS PRINCIPALES DU JEU ---
+
+            /**
+             * Appelé à chaque clic sur le bambou
+             */
+            function clickBamboo(event) {
+                bamboos += clickPower;
+                updateUI();
+                
+                // Créer un feedback visuel de clic
+                createClickFeedback(event.clientX, event.clientY);
+            }
+
+            /**
+             * Crée un "+1" (ou +clickPower) qui flotte vers le haut
+             */
+            function createClickFeedback(x, y) {
+                const feedback = document.createElement('div');
+                feedback.className = 'click-feedback';
+                feedback.textContent = `+${clickPower}`;
+                feedback.style.left = `${x - 15}px`; // Ajuste la position
+                feedback.style.top = `${y - 30}px`;  // Ajuste la position
+                
+                document.body.appendChild(feedback);
+                
+                // Supprimer l'élément après l'animation
+                setTimeout(() => {
+                    feedback.remove();
+                }, 1000); // 1000ms = durée de l'animation
+            }
+
+            /**
+             * Fonction générique pour acheter une amélioration
+             */
+            function buyUpgrade(upgradeKey) {
+                const upgrade = upgrades[upgradeKey];
+                
+                // Vérifier si on a assez de bambous
+                if (bamboos >= upgrade.cost) {
+                    bamboos -= upgrade.cost; // Payer
+                    upgrade.count++; // Augmenter le nombre
+                    
+                    // Augmenter le coût pour le prochain achat (formule classique)
+                    upgrade.cost = Math.ceil(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+                    
+                    // Mettre à jour les stats
+                    recalculateStats();
+                    updateUI();
+                }
+            }
+
+            /**
+             * Recalcule le BPS total et la puissance de clic
+             */
+            function recalculateStats() {
+                // Puissance de clic
+                clickPower = 1 + (upgrades.clickPower.count * upgrades.clickPower.power);
+                
+                // BPS
+                bamboosPerSecond = 0; // Remettre à zéro
+                bamboosPerSecond += upgrades.auto1.count * upgrades.auto1.bps;
+                bamboosPerSecond += upgrades.auto2.count * upgrades.auto2.bps;
+                bamboosPerSecond += upgrades.auto3.count * upgrades.auto3.bps;
+                bamboosPerSecond += upgrades.auto4.count * upgrades.auto4.bps;
+            }
+
+            /**
+             * Met à jour l'affichage (score, BPS, coûts, etc.)
+             */
+            function updateUI() {
+                // Utilise toLocaleString pour formater les grands nombres (ex: 1 000 000)
+                scoreDisplay.textContent = Math.floor(bamboos).toLocaleString('fr-FR');
+                bpsDisplay.textContent = `par seconde : ${bamboosPerSecond.toLocaleString('fr-FR')}`;
+                
+                // Mettre à jour tous les boutons de la boutique
+                for (const key in upgrades) {
+                    const upgrade = upgrades[key];
+                    costDisplays[key].textContent = upgrade.cost.toLocaleString('fr-FR');
+                    countDisplays[key].textContent = `x${upgrade.count}`;
+                    
+                    // Activer ou désactiver le bouton
+                    storeButtons[key].disabled = bamboos < upgrade.cost;
+                }
+            }
+
+            /**
+             * Boucle de jeu principale (s'exécute toutes les secondes)
+             */
+            function gameLoop() {
+                bamboos += bamboosPerSecond;
                 updateUI();
             }
-        }
 
-        /**
-         * Gère l'achat de la "Petite Foreuse"
-         */
-        function buyAuto1Upgrade() {
-            if (fragments >= auto1UpgradeCost) {
-                fragments -= auto1UpgradeCost;
-                fragmentsPerSecond += 1;            // Augmenter le gain passif
-                auto1UpgradeCost = Math.ceil(auto1UpgradeCost * 1.3);
-                updateUI();
+            // --- SAUVEGARDE & CHARGEMENT ---
+
+            function saveGame() {
+                const gameState = {
+                    bamboos: bamboos,
+                    upgrades: upgrades 
+                };
+                localStorage.setItem('bambooClickerSave', JSON.stringify(gameState));
+                alert('Partie sauvegardée !');
             }
-        }
 
-        /**
-         * Gère l'achat du "Concasseur Auto"
-         */
-        function buyAuto2Upgrade() {
-            if (fragments >= auto2UpgradeCost) {
-                fragments -= auto2UpgradeCost;
-                fragmentsPerSecond += 10;           // Augmenter le gain passif (plus fort)
-                auto2UpgradeCost = Math.ceil(auto2UpgradeCost * 1.4);
-                updateUI();
+            function loadGame() {
+                const savedState = localStorage.getItem('bambooClickerSave');
+                if (savedState) {
+                    const gameState = JSON.parse(savedState);
+                    bamboos = gameState.bamboos;
+                    
+                    // Fusionner les données sauvegardées des améliorations
+                    // (conserve les fonctions/références DOM tout en chargeant les valeurs)
+                    for (const key in gameState.upgrades) {
+                        if (upgrades[key]) {
+                            // On ne remplace que les données, pas l'objet entier
+                            upgrades[key].cost = gameState.upgrades[key].cost;
+                            upgrades[key].count = gameState.upgrades[key].count;
+                        }
+                    }
+                    
+                    recalculateStats();
+                    updateUI();
+                    console.log('Partie chargée.');
+                }
             }
-        }
 
-        /**
-         * Ajoute les fragments passifs (par seconde)
-         */
-        function applyPassiveIncome() {
-            fragments += fragmentsPerSecond;
+            function resetGame() {
+                if (confirm('Es-tu sûr de vouloir réinitialiser ? Toute ta progression sera perdue !')) {
+                    localStorage.removeItem('bambooClickerSave');
+                    location.reload(); // Recharge la page
+                }
+            }
+
+            // --- DÉMARRAGE DU JEU ---
+            
+            // Attacher les écouteurs d'événements
+            bambooClicker.addEventListener('click', clickBamboo);
+            
+            storeButtons.clickPower.addEventListener('click', () => buyUpgrade('clickPower'));
+            storeButtons.auto1.addEventListener('click', () => buyUpgrade('auto1'));
+            storeButtons.auto2.addEventListener('click', () => buyUpgrade('auto2'));
+            storeButtons.auto3.addEventListener('click', () => buyUpgrade('auto3'));
+            storeButtons.auto4.addEventListener('click', () => buyUpgrade('auto4'));
+            
+            saveButton.addEventListener('click', saveGame);
+            resetButton.addEventListener('click', resetGame);
+
+            // Charger la sauvegarde (s'il y en a une)
+            loadGame();
+            
+            // Lancer la boucle de jeu (1000ms = 1 seconde)
+            setInterval(gameLoop, 1000);
+            
+            // Mettre à jour l'UI une première fois au chargement
             updateUI();
-        }
-
-        /**
-         * Met à jour TOUTE l'interface utilisateur (scores, boutons)
-         */
-        function updateUI() {
-            // Met à jour les scores
-            scoreDisplay.textContent = Math.floor(fragments); // Math.floor pour éviter les décimales
-            fpsDisplay.textContent = `${fragmentsPerSecond} fragments / sec`;
-
-            // Met à jour le texte et l'état des boutons
-            clickUpgradeBtn.innerHTML = `Meilleure Pioche (Coût: ${clickUpgradeCost}) <span>+${fragmentsPerClick + 1} par clic</span>`;
-            auto1UpgradeBtn.innerHTML = `Petite Foreuse (Coût: ${auto1UpgradeCost}) <span>+1 / sec</span>`;
-            auto2UpgradeBtn.innerHTML = `Concasseur Auto (Coût: ${auto2UpgradeCost}) <span>+10 / sec</span>`;
-
-            // Active/Désactive les boutons si on n'a pas assez d'argent
-            clickUpgradeBtn.disabled = fragments < clickUpgradeCost;
-            auto1UpgradeBtn.disabled = fragments < auto1UpgradeCost;
-            auto2UpgradeBtn.disabled = fragments < auto2UpgradeCost;
-        }
-
-
-        // --- Écouteurs d'événements (Lancement du jeu) ---
-
-        crushTarget.addEventListener('click', crushRock);
-        clickUpgradeBtn.addEventListener('click', buyClickUpgrade);
-        auto1UpgradeBtn.addEventListener('click', buyAuto1Upgrade);
-        auto2UpgradeBtn.addEventListener('click', buyAuto2Upgrade);
-
-        // Boucle de jeu principale (pour le revenu passif)
-        setInterval(applyPassiveIncome, 1000); // 1000ms = 1 seconde
-
-        // Met à jour l'interface une première fois au chargement
-        updateUI();
-
+        });
     </script>
 
 </body>
