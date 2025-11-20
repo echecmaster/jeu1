@@ -3,287 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jeu de Plateforme Mobile Vertical</title>
+    <title>Morpion Contre l'IA</title>
     <style>
-        /* Styles de base */
+        /* Styles CSS */
         body {
-            /* Utilisation de la hauteur de l'écran */
-            display: flex;
-            flex-direction: column; /* Organise le contenu verticalement */
-            justify-content: center;
-            align-items: center;
-            height: 100vh; 
-            margin: 0;
-            background-color: #f0f0f0;
             font-family: Arial, sans-serif;
-            overflow: hidden; 
-        }
-
-        /* Conteneur du jeu (le monde) - Adapté à l'orientation verticale */
-        #game-container {
-            /* Nouvelle dimension : Plus étroit et plus haut */
-            width: 90vw; /* 90% de la largeur de la vue */
-            max-width: 400px; /* Limite la largeur sur les grands écrans */
-            height: 70vh; /* Utilise 70% de la hauteur de la vue */
-            max-height: 600px; /* Limite la hauteur */
-            border: 5px solid #333;
-            background-color: #87ceeb; /* Ciel */
-            position: relative;
-            overflow: hidden; 
-        }
-
-        /* Le reste des éléments reste proportionnel à la taille du conteneur */
-
-        /* Sol */
-        #ground {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 30px;
-            background-color: #4CAF50; 
-            box-shadow: 0 -3px 0 0 #388E3C inset;
-        }
-
-        /* Le Joueur (notre "Mario") */
-        #player {
-            width: 20px;
-            height: 20px;
-            background-color: #ff5722; 
-            position: absolute;
-            bottom: 30px; 
-            /* On centre le joueur horizontalement sur les petits écrans */
-            left: 50%;
-            transform: translateX(-50%); 
-            border-radius: 3px;
-            transition: bottom 0.2s ease-out; 
-        }
-
-        /* Les Obstacles */
-        .obstacle {
-            width: 15px;
-            height: 30px;
-            background-color: #607d8b; 
-            position: absolute;
-            bottom: 30px; 
-            right: -15px; 
-        }
-
-        /* Message de Fin de Partie */
-        #game-over {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            display: none; 
+            display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            font-size: 24px;
-            text-align: center;
-            z-index: 10;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f9;
+            color: #333;
         }
 
-        #game-over button {
-            padding: 10px 20px;
-            margin-top: 15px;
-            font-size: 18px;
+        h1 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        #controls {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #difficulty-select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #007bff;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #28a745;
+            color: white;
             cursor: pointer;
-        }
-        
-        /* Ajustements pour les informations et les instructions */
-        .info-text {
-            margin: 5px 0;
-            font-size: 14px;
-            text-align: center;
+            transition: background-color 0.3s;
         }
 
-        /* Zone de clic/toucher pour sauter sur mobile */
-        #jump-area {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5; /* Assurez-vous qu'il est au-dessus du jeu mais sous le game-over */
+        button:hover {
+            background-color: #218838;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            margin: 20px 0;
+            background-color: #333;
+            border: 5px solid #333;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        .cell:hover:not(:empty) {
+            cursor: default; /* Empêche le curseur de pointer sur les cases déjà jouées */
+        }
+
+        .cell:hover:empty {
+            background-color: #e9e9e9;
+        }
+
+        .cell.x {
+            color: #007bff; /* Bleu pour X */
+        }
+
+        .cell.o {
+            color: #dc3545; /* Rouge pour O */
+        }
+
+        #message {
+            margin-top: 15px;
+            font-size: 20px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <div id="ground"></div>
-    <div id="player"></div>
-    <div id="jump-area"></div> 
+    <h1>🎮 Morpion Contre l'IA</h1>
 
-    <div id="game-over">
-        <p>Game Over !</p>
-        <p>Score : <span id="final-score">0</span></p>
-        <button onclick="startGame()">Recommencer</button>
+    <div id="controls">
+        <label for="difficulty-select">Difficulté :</label>
+        <select id="difficulty-select">
+            <option value="easy">Facile</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Difficile</option>
+            <option value="impossible">Impossible</option>
+        </select>
+        <button onclick="startGame()">Nouvelle Partie</button>
     </div>
-</div>
 
-<p class="info-text">Score : <span id="score">0</span></p>
-<p class="info-text">Touchez l'écran ou appuyez sur **espace** pour sauter.</p>
+    <div id="game-board">
+        </div>
 
-<script>
-    const player = document.getElementById('player');
-    const gameContainer = document.getElementById('game-container');
-    const gameOverScreen = document.getElementById('game-over');
-    const scoreDisplay = document.getElementById('score');
-    const finalScoreDisplay = document.getElementById('final-score');
-    const jumpArea = document.getElementById('jump-area');
+    <div id="message">Cliquez sur **Nouvelle Partie** pour commencer.</div>
 
-    let isJumping = false;
-    let initialPlayerBottom = 30; 
-    let playerBottom = initialPlayerBottom;
-    let gameSpeed = 5; 
-    let isGameOver = false;
-    let score = 0;
-    let obstacleCreationInterval;
+    <script>
+        // Variables globales
+        let board;
+        let cells;
+        let currentPlayer = 'X'; // Le joueur humain commence toujours
+        let gameActive = false;
+        let difficulty = 'impossible'; // Difficulté par défaut
 
-    // --- Fonction de Saut ---
-    function jump() {
-        if (!isJumping && !isGameOver) {
-            isJumping = true;
-            let jumpHeight = 80;
-            let upTime = 0;
+        // Combinaisons gagnantes
+        const WINNING_COMBOS = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Lignes
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colonnes
+            [0, 4, 8], [2, 4, 6]             // Diagonales
+        ];
 
-            const upInterval = setInterval(() => {
-                if (upTime >= jumpHeight) {
-                    clearInterval(upInterval);
-                    const downInterval = setInterval(() => {
-                        playerBottom -= 5;
-                        player.style.bottom = playerBottom + 'px';
+        // Éléments du DOM
+        const gameBoard = document.getElementById('game-board');
+        const messageElement = document.getElementById('message');
+        const difficultySelect = document.getElementById('difficulty-select');
 
-                        if (playerBottom <= initialPlayerBottom) {
-                            clearInterval(downInterval);
-                            playerBottom = initialPlayerBottom;
-                            player.style.bottom = initialPlayerBottom + 'px';
-                            isJumping = false;
-                        }
-                    }, 20); 
+        // Initialisation du jeu
+        document.addEventListener('DOMContentLoaded', () => {
+            difficultySelect.addEventListener('change', (e) => {
+                difficulty = e.target.value;
+            });
+            createBoardCells();
+        });
+
+        // Fonction pour créer les cellules du plateau
+        function createBoardCells() {
+            gameBoard.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                cell.addEventListener('click', handleCellClick);
+                gameBoard.appendChild(cell);
+            }
+            cells = document.querySelectorAll('.cell');
+        }
+
+        // Fonction pour démarrer/réinitialiser le jeu
+        function startGame() {
+            board = Array(9).fill(null);
+            currentPlayer = 'X';
+            gameActive = true;
+            messageElement.textContent = "Votre tour (X)";
+            cells.forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('x', 'o');
+                cell.addEventListener('click', handleCellClick, { once: true });
+            });
+            difficulty = difficultySelect.value;
+            // Si l'IA (O) doit commencer, l'IA joue immédiatement
+            // Note : Par convention, le joueur (X) commence dans cette implémentation.
+        }
+
+        // Gestion du clic sur une cellule
+        function handleCellClick(e) {
+            const cell = e.target;
+            const index = parseInt(cell.dataset.index);
+
+            if (!gameActive || board[index] !== null || currentPlayer === 'O') {
+                return;
+            }
+
+            // Mouvement du joueur (X)
+            makeMove(cell, index, currentPlayer);
+
+            if (checkGameStatus()) {
+                return;
+            }
+
+            // Changement au tour de l'IA (O)
+            currentPlayer = 'O';
+            messageElement.textContent = "Tour de l'IA (O)...";
+
+            // Délai pour simuler la "réflexion" de l'IA
+            setTimeout(aiMove, 500);
+        }
+
+        // Fonction pour effectuer un mouvement
+        function makeMove(cell, index, player) {
+            board[index] = player;
+            cell.textContent = player;
+            cell.classList.add(player.toLowerCase());
+            cell.removeEventListener('click', handleCellClick); // Empêche de recliquer
+        }
+
+        // Vérifie l'état du jeu (victoire ou égalité)
+        function checkGameStatus() {
+            if (checkWin(board, currentPlayer)) {
+                messageElement.textContent = `🎉 Le joueur ${currentPlayer} gagne !`;
+                gameActive = false;
+                return true;
+            } else if (board.every(cell => cell !== null)) {
+                messageElement.textContent = "🤝 Égalité !";
+                gameActive = false;
+                return true;
+            }
+            return false;
+        }
+
+        // Vérifie si un joueur a gagné
+        function checkWin(currentBoard, player) {
+            return WINNING_COMBOS.some(combination => {
+                return combination.every(index => {
+                    return currentBoard[index] === player;
+                });
+            });
+        }
+
+        // Logique de jeu de l'IA (O)
+        function aiMove() {
+            if (!gameActive) return;
+
+            let moveIndex;
+
+            switch (difficulty) {
+                case 'easy':
+                    moveIndex = getEasyMove(board);
+                    break;
+                case 'normal':
+                    moveIndex = getNormalMove(board);
+                    break;
+                case 'hard':
+                    moveIndex = getHardMove(board);
+                    break;
+                case 'impossible':
+                default:
+                    moveIndex = getBestMove(board);
+                    break;
+            }
+
+            if (moveIndex !== undefined && board[moveIndex] === null) {
+                const cell = cells[moveIndex];
+                makeMove(cell, moveIndex, 'O');
+
+                if (!checkGameStatus()) {
+                    // Changement au tour du joueur (X)
+                    currentPlayer = 'X';
+                    messageElement.textContent = "Votre tour (X)";
+                }
+            }
+        }
+
+        // --- Stratégies d'IA par Difficulté ---
+
+        // 1. IA Facile (Coup aléatoire)
+        function getEasyMove(currentBoard) {
+            const availableMoves = currentBoard
+                .map((val, index) => val === null ? index : null)
+                .filter(index => index !== null);
+
+            if (availableMoves.length > 0) {
+                const randomIndex = Math.floor(Math.random() * availableMoves.length);
+                return availableMoves[randomIndex];
+            }
+            return undefined; // Égalité ou erreur (ne devrait pas arriver si le jeu est actif)
+        }
+
+        // 2. IA Normale (Bloque le joueur 50% du temps, sinon aléatoire)
+        function getNormalMove(currentBoard) {
+            if (Math.random() < 0.5) { // 50% de chance d'être "stupide"
+                return getEasyMove(currentBoard);
+            }
+
+            // Essayer de gagner
+            let winningMove = findWinningMove(currentBoard, 'O');
+            if (winningMove !== undefined) return winningMove;
+
+            // Essayer de bloquer le joueur
+            let blockingMove = findWinningMove(currentBoard, 'X');
+            if (blockingMove !== undefined) return blockingMove;
+
+            // Sinon, coup aléatoire
+            return getEasyMove(currentBoard);
+        }
+
+        // 3. IA Difficile (Minimax avec profondeur limitée)
+        function getHardMove(currentBoard) {
+            // Utilise Minimax mais avec une profondeur limitée (ex: 2 ou 3)
+            // Pour simplifier, on utilisera une version qui ne va pas jusqu'au bout,
+            // mais qui privilégie les coups centraux/coins et bloque le joueur.
+            // On peut aussi utiliser Minimax complet avec une probabilité d'erreur (voir Impossible pour le Minimax complet)
+            if (Math.random() < 0.2) { // 20% de chance d'erreur (Minimax avec un coup aléatoire au lieu du meilleur)
+                return getEasyMove(currentBoard);
+            }
+            // Sinon, coup "presque" parfait (Minimax complet ici, mais vous pourriez le simplifier)
+            return getBestMove(currentBoard);
+        }
+
+        // Fonction utilitaire pour trouver un coup gagnant/bloquant
+        function findWinningMove(currentBoard, player) {
+            for (const combo of WINNING_COMBOS) {
+                const [a, b, c] = combo;
+                const line = [currentBoard[a], currentBoard[b], currentBoard[c]];
+                const playerTiles = line.filter(tile => tile === player).length;
+                const emptyTiles = line.filter(tile => tile === null).length;
+
+                if (playerTiles === 2 && emptyTiles === 1) {
+                    // C'est le coup !
+                    return combo.find(index => currentBoard[index] === null);
+                }
+            }
+            return undefined;
+        }
+
+        // 4. IA Impossible (Algorithme Minimax complet)
+        function getBestMove(currentBoard) {
+            return minimax(currentBoard, 'O').index;
+        }
+
+        // L'algorithme Minimax
+        function minimax(newBoard, player) {
+            const availableSpots = newBoard
+                .map((val, index) => val === null ? index : null)
+                .filter(index => index !== null);
+
+            // Conditions terminales
+            if (checkWin(newBoard, 'X')) {
+                return { score: -10 }; // X (joueur) gagne : score négatif pour l'IA
+            } else if (checkWin(newBoard, 'O')) {
+                return { score: 10 };  // O (IA) gagne : score positif pour l'IA
+            } else if (availableSpots.length === 0) {
+                return { score: 0 };   // Égalité
+            }
+
+            // Collecter tous les résultats des mouvements possibles
+            const moves = [];
+
+            for (let i = 0; i < availableSpots.length; i++) {
+                const move = {};
+                const index = availableSpots[i];
+
+                move.index = index;
+                newBoard[index] = player; // Faire le mouvement
+
+                // Appeler minimax récursivement
+                if (player === 'O') {
+                    const result = minimax(newBoard, 'X'); // Le prochain joueur est X (le MINIMIZER)
+                    move.score = result.score;
+                } else {
+                    const result = minimax(newBoard, 'O'); // Le prochain joueur est O (le MAXIMIZER)
+                    move.score = result.score;
                 }
 
-                playerBottom += 5;
-                player.style.bottom = playerBottom + 'px';
-                upTime += 5;
+                newBoard[index] = null; // Annuler le mouvement (Backtracking)
+                moves.push(move);
+            }
 
-            }, 20); 
-        }
-    }
-
-    // --- Écoute des événements clavier (pour ordinateur) ---
-    document.addEventListener('keydown', (event) => {
-        if (event.keyCode === 32 || event.keyCode === 38) {
-            event.preventDefault(); // Empêche le défilement de la page
-            jump();
-        }
-    });
-
-    // --- Écoute des événements de toucher (pour mobile) ---
-    jumpArea.addEventListener('touchstart', (event) => {
-        event.preventDefault(); // Empêche l'action par défaut du toucher
-        jump();
-    });
-    
-    // --- Création des Obstacles ---
-    function createObstacle() {
-        if (isGameOver) return;
-
-        const obstacle = document.createElement('div');
-        obstacle.classList.add('obstacle');
-        gameContainer.appendChild(obstacle);
-
-        let obstacleRight = -15; 
-        const playerLeft = gameContainer.clientWidth / 2; // Position du joueur par rapport au bord gauche
-
-        function moveObstacle() {
-            if (isGameOver) {
-                 // Supprime l'obstacle pour nettoyer l'écran s'il y a un Game Over
-                if (obstacle.parentElement) {
-                    obstacle.remove();
+            // Déterminer le meilleur mouvement
+            let bestMove;
+            if (player === 'O') {
+                // MAXIMIZER (IA) : choisir le mouvement avec le score le plus élevé
+                let bestScore = -Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score > bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = moves[i];
+                    }
                 }
-                return;
+            } else {
+                // MINIMIZER (Joueur) : choisir le mouvement avec le score le plus faible
+                let bestScore = Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score < bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = moves[i];
+                    }
+                }
             }
 
-            obstacleRight += gameSpeed; 
-            obstacle.style.right = obstacleRight + 'px';
-
-            // --- Détection de la collision ---
-            // Le joueur est centré à playerLeft (gameContainer.clientWidth / 2)
-            // Sa position de départ (left) est : playerLeft - (player.width / 2)
-            const playerVisualLeft = (gameContainer.clientWidth / 2) - 10; // 10 = player.width / 2 (20/2)
-            const playerVisualRight = playerVisualLeft + 20; // 20 = player.width
-            
-            // La position de l'obstacle est calculée à partir de la droite
-            const obstacleVisualLeft = gameContainer.clientWidth - obstacleRight - 15; // 15 = obstacle.width
-            const obstacleVisualRight = gameContainer.clientWidth - obstacleRight;
-
-            // Vérification de la collision :
-            const horizontalCollision = (playerVisualRight > obstacleVisualLeft) && (playerVisualLeft < obstacleVisualRight);
-            const verticalCollision = playerBottom < initialPlayerBottom + 30; // 30 = obstacle.height
-
-            if (horizontalCollision && verticalCollision) {
-                gameOver();
-                return;
-            }
-
-            // Si l'obstacle sort de l'écran à gauche
-            if (obstacleRight > gameContainer.clientWidth) {
-                obstacle.remove();
-                score++;
-                scoreDisplay.textContent = score;
-                return;
-            }
-
-            requestAnimationFrame(moveObstacle);
+            return bestMove;
         }
-
-        requestAnimationFrame(moveObstacle);
-    }
-
-    // --- Fin de Partie ---
-    function gameOver() {
-        isGameOver = true;
-        clearTimeout(obstacleCreationInterval);
-        
-        // Arrêter et supprimer tous les obstacles
-        const existingObstacles = document.querySelectorAll('.obstacle');
-        existingObstacles.forEach(obs => obs.remove()); 
-
-        finalScoreDisplay.textContent = score;
-        gameOverScreen.style.display = 'flex'; 
-    }
-
-    // --- Démarrer le Jeu ---
-    function startGame() {
-        isGameOver = false;
-        score = 0;
-        scoreDisplay.textContent = score;
-        gameOverScreen.style.display = 'none';
-        
-        playerBottom = initialPlayerBottom;
-        player.style.bottom = initialPlayerBottom + 'px';
-        isJumping = false;
-
-        // Assure que tous les anciens obstacles ont été nettoyés
-        document.querySelectorAll('.obstacle').forEach(obs => obs.remove());
-
-        const createLoop = () => {
-            if (!isGameOver) {
-                createObstacle();
-                let randomTime = Math.random() * 1500 + 1500; 
-                obstacleCreationInterval = setTimeout(createLoop, randomTime);
-            }
-        };
-        createLoop();
-    }
-
-    window.onload = startGame;
-</script>
-
+    </script>
 </body>
 </html>
