@@ -6,24 +6,9 @@
     <title>Mon FPS Zombie</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="hud">
-        <div id="joystick-zone">
-            <div id="joystick-base">
-                <div id="joystick-stick"></div>
-            </div>
-        </div>
-
-        <div id="action-zone">
-            <button id="shoot-button">TIRER</button>
-        </div>
-    </div>
-
-    <script src="game.js"></script>
-</body>
-/* Empêche le défilement et force le plein écran */
+<header> 
+    <style>
+    /* Empêche le défilement et force le plein écran */
 body, html {
     margin: 0;
     padding: 0;
@@ -127,6 +112,26 @@ body, html {
 
 #shoot-button:active {
     background-color: rgba(255, 0, 0, 0.8);
+</style>
+</header>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+        <div id="joystick-zone">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
+
+        <div id="action-zone">
+            <button id="shoot-button">TIRER</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+<script>
 }
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -254,5 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("Jeu lancé. Initialisation de la boucle...");
     gameLoop();
 });
+</script>
 
 </html>
