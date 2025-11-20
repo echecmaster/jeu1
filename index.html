@@ -3,363 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>FPS Zombies (Couleurs)</title>
-    
-    <style>
-        /* Réinitialisation de base */
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #000;
-            font-family: sans-serif;
-        }
-
-        /* Le canevas du jeu prend tout l'écran */
-        #gameCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Écran de démarrage */
-        #startScreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            color: white;
-            text-align: center;
-        }
-
-        #startButton {
-            font-size: 1.5rem;
-            padding: 15px 30px;
-            cursor: pointer;
-        }
-
-        /* --- UI du JEU --- */
-
-        /* Zone pour le joystick (moitié gauche de l'écran) */
-        #joystickZone {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 50%;
-            height: 50%;
-            z-index: 10;
-        }
-        
-        /* Cache la base statique du joystick pour un look plus propre */
-        .nipple .back {
-            opacity: 0.5;
-        }
-
-        /* Bouton de tir (en bas à droite) */
-        #shootButton {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            width: 80px;
-            height: 80px;
-            background-color: rgba(255, 0, 0, 0.5);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            z-index: 10;
-            /* Pour centrer le mot "TIR" */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-        }
-
-        /* Réticule de visée */
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 2px;
-            height: 2px;
-            background-color: white;
-            border: 1px solid black;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 5;
-            display: none; /* Caché au début */
-        }
-
-    </style>
+    <title>Mon FPS Zombie</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
     <canvas id="gameCanvas"></canvas>
-    <div id="crosshair"></div>
 
-    <div id="joystickZone"></div>
-    <div id="shootButton">TIR</div>
+    <div id="hud">
+        <div id="joystick-zone">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
 
-    <div id="startScreen">
-        <h1>Mini FPS</h1>
-        <p>Joystick à gauche pour bouger.<br>Bouton à droite pour tirer.<br>Glisser sur l'écran pour viser.</p>
-        <button id="startButton">Commencer</button>
+        <div id="action-zone">
+            <button id="shoot-button">TIRER</button>
+        </div>
     </div>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-            }
-        }
-    </script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
-
-    
-    <script type="module">
-        import * as THREE from 'three';
-
-        // --- Références HTML ---
-        const canvas = document.getElementById('gameCanvas');
-        const startScreen = document.getElementById('startScreen');
-        const startButton = document.getElementById('startButton');
-        const joystickZone = document.getElementById('joystickZone');
-        const shootButton = document.getElementById('shootButton');
-        const crosshair = document.getElementById('crosshair');
-
-        // --- Variables de jeu ---
-        let scene, camera, renderer, clock;
-        let ground, player;
-        const zombies = [];
-        const bullets = [];
-        const playerSpeed = 5; // unités par seconde
-        const bulletSpeed = 25;
-
-        // --- Variables de contrôle ---
-        const moveDirection = new THREE.Vector2(0, 0); // (x, y) du joystick
-        let isDragging = false; // Pour la visée
-
-        // --- Initialisation (appelée après le clic sur "Start") ---
-        function init() {
-            // 1. Scène et Horloge
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB); // Un ciel bleu
-            clock = new THREE.Clock();
-
-            // 2. Caméra (le Joueur)
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.7, 0); // Hauteur des yeux
-            
-            // 3. Rendu
-            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-
-            // 4. Éclairage
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            dirLight.position.set(5, 10, 7);
-            scene.add(dirLight);
-
-            // 5. Sol
-            const groundGeo = new THREE.PlaneGeometry(100, 100);
-            const groundMat = new THREE.MeshBasicMaterial({ color: 0x448844 }); // Vert foncé
-            ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.rotation.x = -Math.PI / 2; // Le mettre à plat
-            scene.add(ground);
-
-            // 6. "Zombies" (Cubes verts)
-            const zombieGeo = new THREE.BoxGeometry(1, 2, 1); // 2m de haut
-            for (let i = 0; i < 15; i++) {
-                const zombieMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Vert
-                const zombie = new THREE.Mesh(zombieGeo, zombieMat);
-                
-                const x = (Math.random() - 0.5) * 80;
-                const z = (Math.random() - 0.5) * 80;
-                zombie.position.set(x, 1, z); // Posé sur le sol (Y=1 car 2m de haut)
-                
-                scene.add(zombie);
-                zombies.push(zombie);
-            }
-
-            // 7. Mettre en place les contrôles
-            setupControls();
-            
-            // 8. Démarrer la boucle de jeu
-            renderer.setAnimationLoop(animate);
-        }
-
-        // --- Mise en place des contrôles ---
-        function setupControls() {
-            // A. Joystick (NippleJS)
-            const joystickOptions = {
-                zone: joystickZone,
-                mode: 'dynamic', // Le joystick apparaît là où on touche
-                color: 'white',
-                position: { left: '25%', top: '50%' },
-                fadeTime: 250
-            };
-            const manager = nipplejs.create(joystickOptions);
-
-            manager.on('move', (event, data) => {
-                // Stocke le vecteur de direction du joystick
-                moveDirection.x = data.vector.x;
-                moveDirection.y = data.vector.y;
-            });
-
-            manager.on('end', () => {
-                // Réinitialise quand on lâche
-                moveDirection.set(0, 0);
-            });
-
-            // B. Bouton de tir
-            shootButton.addEventListener('pointerdown', shoot);
-
-            // C. Visée (Pointer Lock / Touch Drag)
-            // C'est la partie la plus importante pour un FPS
-            
-            // Pour la rotation de la caméra (visée)
-            const euler = new THREE.Euler(0, 0, 0, 'YXZ'); // Ordre YXZ TRES important pour FPS
-            const sensitivity = 0.002;
-
-            function onPointerMove(event) {
-                if (!isDragging) return;
-                
-                // 'movementX/Y' est la distance parcourue par le pointeur depuis le dernier événement
-                const movementX = event.movementX || 0;
-                const movementY = event.movementY || 0;
-
-                euler.setFromQuaternion(camera.quaternion);
-
-                euler.y -= movementX * sensitivity; // Rotation gauche/droite
-                euler.x -= movementY * sensitivity; // Rotation haut/bas
-
-                // Limite la rotation haut/bas pour ne pas faire de salto
-                euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
-
-                camera.quaternion.setFromEuler(euler);
-            }
-
-            // Événements pour la visée
-            canvas.addEventListener('pointerdown', (event) => {
-                // Ne pas viser si on touche une commande
-                if (event.target === joystickZone || event.target === shootButton) {
-                    return;
-                }
-                isDragging = true;
-            });
-
-            window.addEventListener('pointermove', onPointerMove);
-            
-            window.addEventListener('pointerup', () => {
-                isDragging = false;
-            });
-        }
-
-        // --- Fonction de Tir ---
-        function shoot() {
-            const bulletGeo = new THREE.SphereGeometry(0.1, 8, 8);
-            const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Jaune
-            const bullet = new THREE.Mesh(bulletGeo, bulletMat);
-
-            // 1. Obtenir la direction de la caméra
-            const direction = new THREE.Vector3();
-            camera.getWorldDirection(direction);
-
-            // 2. Placer la balle devant la caméra
-            bullet.position.copy(camera.position).add(direction.multiplyScalar(1));
-            
-            // 3. Donner une vélocité à la balle
-            bullet.userData.velocity = direction.normalize().multiplyScalar(bulletSpeed);
-
-            scene.add(bullet);
-            bullets.push(bullet);
-        }
-
-        // --- Boucle de jeu (appelée à chaque frame) ---
-        function animate() {
-            const delta = clock.getDelta(); // Temps écoulé depuis la dernière frame
-
-            // 1. Mettre à jour le mouvement du joueur
-            if (moveDirection.lengthSq() > 0) {
-                // 'translateZ' se déplace le long de l'axe "regardé"
-                // 'translateX' se déplace le long de l'axe "droit"
-                // Le joystick Y est inversé (haut = positif), d'où le -
-                camera.translateZ(moveDirection.y * playerSpeed * delta * -1);
-                camera.translateX(moveDirection.x * playerSpeed * delta);
-            }
-
-            // 2. Mettre à jour les balles
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                const bullet = bullets[i];
-                bullet.position.addScaledVector(bullet.userData.velocity, delta);
-
-                // 3. Détection de collision (Balle <-> Zombie)
-                let hit = false;
-                for (let j = zombies.length - 1; j >= 0; j--) {
-                    const zombie = zombies[j];
-                    
-                    // Collision simple basée sur la distance
-                    if (bullet.position.distanceTo(zombie.position) < 1.2) { // 1.2 = hitbox
-                        // Touché !
-                        scene.remove(zombie);
-                        zombies.splice(j, 1); // Retire le zombie du tableau
-                        hit = true;
-                        break; // La balle ne peut toucher qu'un zombie
-                    }
-                }
-
-                // Supprimer la balle si elle touche ou va trop loin
-                if (hit || bullet.position.length() > 150) {
-                    scene.remove(bullet);
-                    bullets.splice(i, 1);
-                }
-            }
-
-            // 4. Rendu de la scène
-            renderer.render(scene, camera);
-        }
-
-        // --- Gestion du redimensionnement de la fenêtre ---
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // --- Démarrage du jeu ---
-        startButton.addEventListener('click', () => {
-            // 1. Demander le plein écran
-            document.documentElement.requestFullscreen().catch(err => {
-                console.warn(`Erreur plein écran: ${err.message}`);
-            });
-            
-            // 2. Demander l'orientation paysage
-            try {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape');
-                }
-            } catch (error) {
-                console.warn('Verrouillage orientation non supporté.');
-            }
-
-            // 3. Cacher le menu et montrer le jeu
-            startScreen.style.display = 'none';
-            crosshair.style.display = 'block';
-            
-            // 4. Lancer le moteur 3D
-            init();
-        });
-
-    </script>
+    <script src="game.js"></script>
 </body>
+/* Empêche le défilement et force le plein écran */
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #000;
+    font-family: Arial, sans-serif;
+}
+
+/* Le canvas prend tout l'espace derrière l'interface */
+#gameCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Conteneur principal de l'interface (HUD) */
+#hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2; /* S'affiche par-dessus le canvas */
+    display: flex;
+    justify-content: space-between; /* Sépare la gauche et la droite */
+    align-items: flex-end; /* Aligne les contrôles en bas */
+    /* Empêche le HUD de bloquer les événements sur le canvas,
+       sauf sur les éléments spécifiquement définis */
+    pointer-events: none; 
+}
+
+/* --- Zone Gauche : Joystick --- */
+#joystick-zone {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    justify-content: flex-start; /* Aligne la base à gauche de la zone */
+    align-items: flex-end; /* Aligne la base en bas de la zone */
+    padding-left: 5vw;
+    padding-bottom: 5vh;
+    box-sizing: border-box;
+    pointer-events: auto; /* Active les événements tactiles pour cette zone */
+}
+
+#joystick-base {
+    width: 150px;
+    height: 150px;
+    background-color: rgba(128, 128, 128, 0.3);
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Assure que la base est au-dessus du stick pour la référence de position */
+}
+
+#joystick-stick {
+    width: 80px;
+    height: 80px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    position: absolute;
+    /* Le 'translate' sera géré par JavaScript */
+    transition: transform 0.05s ease-out; 
+}
+
+/* --- Zone Droite : Bouton de tir --- */
+#action-zone {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    justify-content: flex-end; /* Aligne le bouton à droite de la zone */
+    align-items: flex-end; /* Aligne le bouton en bas de la zone */
+    padding-right: 5vw;
+    padding-bottom: 5vh;
+    box-sizing: border-box;
+    pointer-events: auto; /* Active les événements tactiles pour cette zone */
+}
+
+#shoot-button {
+    width: 120px;
+    height: 120px;
+    background-color: rgba(255, 0, 0, 0.5);
+    border: 3px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    user-select: none; /* Empêche la sélection de texte */
+    -webkit-tap-highlight-color: transparent; /* Empêche le flash bleu sur mobile */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+#shoot-button:active {
+    background-color: rgba(255, 0, 0, 0.8);
+}
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- Références aux éléments ---
+    const joystickZone = document.getElementById('joystick-zone');
+    const joystickStick = document.getElementById('joystick-stick');
+    const shootButton = document.getElementById('shoot-button');
+    const canvas = document.getElementById('gameCanvas');
+    // Si vous utilisiez Three.js pour la 3D, l'initialisation irait ici.
+
+    // --- Variables de jeu (Exemples) ---
+    // moveInput contient les commandes du joueur, normalisées entre -1 et 1
+    const moveInput = { x: 0, y: 0 };
+    let isShooting = false;
+
+    // --- Logique du Joystick ---
+    let touchId = null; // ID du doigt qui contrôle le joystick
+    let joystickBasePos = { x: 0, y: 0 }; // Position absolue du centre de la base
+    const stickMaxMove = 75; // Limite de déplacement du stick (en px)
+
+    /**
+     * Calcule et stocke la position absolue du centre de la base du joystick.
+     * Cette fonction est appelée au début et potentiellement au redimensionnement.
+     */
+    function updateJoystickBasePos() {
+        const baseRect = joystickStick.parentElement.getBoundingClientRect();
+        joystickBasePos = { 
+            x: baseRect.left + baseRect.width / 2, 
+            y: baseRect.top + baseRect.height / 2 
+        };
+    }
+
+    // Calculer la position une première fois au chargement
+    updateJoystickBasePos();
+
+    // Recalculer la position si la fenêtre est redimensionnée (important pour mobile)
+    window.addEventListener('resize', updateJoystickBasePos);
+
+
+    joystickZone.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Empêche le défilement de la page
+        if (touchId === null) { // Prend le premier doigt qui touche la zone
+            const touch = e.changedTouches[0];
+            touchId = touch.identifier;
+            
+            // Assurez-vous d'avoir la position de base la plus récente
+            updateJoystickBasePos(); 
+        }
+    }, { passive: false });
+
+    joystickZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        // Trouver le doigt qui a initié le mouvement
+        const touch = Array.from(e.changedTouches).find(t => t.identifier === touchId);
+
+        if (touch) {
+            // Calculer le déplacement (delta) par rapport au centre de la base
+            let deltaX = touch.clientX - joystickBasePos.x;
+            let deltaY = touch.clientY - joystickBasePos.y;
+
+            // Limiter la distance pour que le stick ne sorte pas de la base
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            if (distance > stickMaxMove) {
+                // Normaliser et multiplier par la distance maximale
+                deltaX = (deltaX / distance) * stickMaxMove;
+                deltaY = (deltaY / distance) * stickMaxMove;
+            }
+
+            // Déplacer le stick visuellement
+            joystickStick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+            // Mettre à jour les valeurs de mouvement (normalisées entre -1 et 1)
+            // L'axe Y est inversé pour les jeux (Haut = -Y de l'écran, mais +1 en jeu)
+            moveInput.x = deltaX / stickMaxMove;
+            moveInput.y = -deltaY / stickMaxMove; 
+        }
+    }, { passive: false });
+
+    joystickZone.addEventListener('touchend', (e) => {
+        // Trouver le doigt qui se lève
+        const touch = Array.from(e.changedTouches).find(t => t.identifier === touchId);
+        
+        if (touch) {
+            // Réinitialiser le joystick
+            touchId = null;
+            joystickStick.style.transform = `translate(0px, 0px)`;
+            moveInput.x = 0;
+            moveInput.y = 0;
+        }
+    });
+
+    // --- Logique du Bouton de Tir ---
+    shootButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isShooting = true;
+        // console.log("TIR COMMENCÉ !");
+    }, { passive: false });
+
+    shootButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        isShooting = false;
+        // console.log("TIR ARRÊTÉ.");
+    }, { passive: false });
+
+
+    // --- Boucle de Jeu (Game Loop) ---
+    function gameLoop() {
+        // 1. Lire les entrées (moveInput et isShooting sont mis à jour par les listeners)
+        // Ceci est la ligne cruciale pour votre logique de jeu :
+        // console.log(`Mouvement: X=${moveInput.x.toFixed(2)}, Y=${moveInput.y.toFixed(2)} | Tir: ${isShooting}`);
+        
+        // 2. Mettre à jour la logique du jeu
+        // C'EST ICI QUE VOUS UTILISEREZ moveInput.x, moveInput.y et isShooting
+        // pour déplacer votre caméra/joueur, gérer les collisions, et lancer des actions.
+
+        // 3. Rendre la scène
+        // Si vous utilisez Three.js, vous appelleriez ici le `renderer.render(scene, camera);`
+        
+        // Redemande au navigateur de lancer cette fonction à la prochaine frame
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Lancer le jeu
+    console.log("Jeu lancé. Initialisation de la boucle...");
+    gameLoop();
+});
+
 </html>
