@@ -2,263 +2,247 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mon FPS Zombie</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<header> 
+    <title>Jeu de Plateforme Simple</title>
     <style>
-    /* Empêche le défilement et force le plein écran */
-body, html {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: #000;
-    font-family: Arial, sans-serif;
-}
+        /* Styles de base */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            overflow: hidden; /* Empêche les barres de défilement */
+        }
 
-/* Le canvas prend tout l'espace derrière l'interface */
-#gameCanvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-}
+        /* Conteneur du jeu (le monde) */
+        #game-container {
+            width: 600px;
+            height: 200px;
+            border: 5px solid #333;
+            background-color: #87ceeb; /* Ciel */
+            position: relative;
+            overflow: hidden; /* Important pour masquer les éléments en dehors */
+        }
 
-/* Conteneur principal de l'interface (HUD) */
-#hud {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2; /* S'affiche par-dessus le canvas */
-    display: flex;
-    justify-content: space-between; /* Sépare la gauche et la droite */
-    align-items: flex-end; /* Aligne les contrôles en bas */
-    /* Empêche le HUD de bloquer les événements sur le canvas,
-       sauf sur les éléments spécifiquement définis */
-    pointer-events: none; 
-}
+        /* Sol */
+        #ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 30px;
+            background-color: #4CAF50; /* Vert herbe */
+            box-shadow: 0 -3px 0 0 #388E3C inset;
+        }
 
-/* --- Zone Gauche : Joystick --- */
-#joystick-zone {
-    width: 50%;
-    height: 100%;
-    display: flex;
-    justify-content: flex-start; /* Aligne la base à gauche de la zone */
-    align-items: flex-end; /* Aligne la base en bas de la zone */
-    padding-left: 5vw;
-    padding-bottom: 5vh;
-    box-sizing: border-box;
-    pointer-events: auto; /* Active les événements tactiles pour cette zone */
-}
+        /* Le Joueur (notre "Mario") */
+        #player {
+            width: 20px;
+            height: 20px;
+            background-color: #ff5722; /* Rouge-orange */
+            position: absolute;
+            bottom: 30px; /* Au-dessus du sol */
+            left: 50px;
+            border-radius: 3px;
+            transition: bottom 0.2s ease-out; /* Animation douce du saut */
+        }
 
-#joystick-base {
-    width: 150px;
-    height: 150px;
-    background-color: rgba(128, 128, 128, 0.3);
-    border-radius: 50%;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* Assure que la base est au-dessus du stick pour la référence de position */
-}
+        /* Les Obstacles */
+        .obstacle {
+            width: 15px;
+            height: 30px;
+            background-color: #607d8b; /* Gris roche */
+            position: absolute;
+            bottom: 30px; /* Au niveau du sol */
+            right: -15px; /* Commence hors de l'écran */
+        }
 
-#joystick-stick {
-    width: 80px;
-    height: 80px;
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 50%;
-    position: absolute;
-    /* Le 'translate' sera géré par JavaScript */
-    transition: transform 0.05s ease-out; 
-}
+        /* Message de Fin de Partie */
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            display: none; /* Caché par défaut */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            text-align: center;
+            z-index: 10;
+        }
 
-/* --- Zone Droite : Bouton de tir --- */
-#action-zone {
-    width: 50%;
-    height: 100%;
-    display: flex;
-    justify-content: flex-end; /* Aligne le bouton à droite de la zone */
-    align-items: flex-end; /* Aligne le bouton en bas de la zone */
-    padding-right: 5vw;
-    padding-bottom: 5vh;
-    box-sizing: border-box;
-    pointer-events: auto; /* Active les événements tactiles pour cette zone */
-}
-
-#shoot-button {
-    width: 120px;
-    height: 120px;
-    background-color: rgba(255, 0, 0, 0.5);
-    border: 3px solid rgba(255, 255, 255, 0.7);
-    border-radius: 50%;
-    color: white;
-    font-size: 24px;
-    font-weight: bold;
-    user-select: none; /* Empêche la sélection de texte */
-    -webkit-tap-highlight-color: transparent; /* Empêche le flash bleu sur mobile */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-}
-
-#shoot-button:active {
-    background-color: rgba(255, 0, 0, 0.8);
-</style>
-</header>
+        #game-over button {
+            padding: 10px 20px;
+            margin-top: 15px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
 <body>
-    <canvas id="gameCanvas"></canvas>
 
-    <div id="hud">
-        <div id="joystick-zone">
-            <div id="joystick-base">
-                <div id="joystick-stick"></div>
-            </div>
-        </div>
-
-        <div id="action-zone">
-            <button id="shoot-button">TIRER</button>
-        </div>
+<div id="game-container">
+    <div id="ground"></div>
+    <div id="player"></div>
+    <div id="game-over">
+        <p>Game Over !</p>
+        <p>Score : <span id="final-score">0</span></p>
+        <button onclick="startGame()">Recommencer</button>
     </div>
+</div>
 
-    <script src="game.js"></script>
-</body>
+<p>Appuyez sur la **barre d'espace** ou la **flèche du haut** pour sauter.</p>
+<p>Score : <span id="score">0</span></p>
+
 <script>
-}
-document.addEventListener('DOMContentLoaded', () => {
+    const player = document.getElementById('player');
+    const gameContainer = document.getElementById('game-container');
+    const gameOverScreen = document.getElementById('game-over');
+    const scoreDisplay = document.getElementById('score');
+    const finalScoreDisplay = document.getElementById('final-score');
 
-    // --- Références aux éléments ---
-    const joystickZone = document.getElementById('joystick-zone');
-    const joystickStick = document.getElementById('joystick-stick');
-    const shootButton = document.getElementById('shoot-button');
-    const canvas = document.getElementById('gameCanvas');
-    // Si vous utilisiez Three.js pour la 3D, l'initialisation irait ici.
+    let isJumping = false;
+    let gravity = 0.9;
+    let initialPlayerBottom = 30; // Position de base du joueur (au-dessus du sol)
+    let playerBottom = initialPlayerBottom;
+    let gameSpeed = 5; // Vitesse de défilement du jeu/des obstacles
+    let isGameOver = false;
+    let score = 0;
+    let gameLoopInterval;
+    let obstacleCreationInterval;
 
-    // --- Variables de jeu (Exemples) ---
-    // moveInput contient les commandes du joueur, normalisées entre -1 et 1
-    const moveInput = { x: 0, y: 0 };
-    let isShooting = false;
+    // --- Fonction de Saut ---
+    function jump() {
+        if (!isJumping && !isGameOver) {
+            isJumping = true;
+            let jumpHeight = 80;
+            let upTime = 0;
 
-    // --- Logique du Joystick ---
-    let touchId = null; // ID du doigt qui contrôle le joystick
-    let joystickBasePos = { x: 0, y: 0 }; // Position absolue du centre de la base
-    const stickMaxMove = 75; // Limite de déplacement du stick (en px)
+            const upInterval = setInterval(() => {
+                // Montée du saut
+                if (upTime >= jumpHeight) {
+                    clearInterval(upInterval);
+                    // Début de la descente
+                    const downInterval = setInterval(() => {
+                        playerBottom -= 5;
+                        player.style.bottom = playerBottom + 'px';
 
-    /**
-     * Calcule et stocke la position absolue du centre de la base du joystick.
-     * Cette fonction est appelée au début et potentiellement au redimensionnement.
-     */
-    function updateJoystickBasePos() {
-        const baseRect = joystickStick.parentElement.getBoundingClientRect();
-        joystickBasePos = { 
-            x: baseRect.left + baseRect.width / 2, 
-            y: baseRect.top + baseRect.height / 2 
-        };
+                        // Atteint le sol
+                        if (playerBottom <= initialPlayerBottom) {
+                            clearInterval(downInterval);
+                            playerBottom = initialPlayerBottom;
+                            player.style.bottom = initialPlayerBottom + 'px';
+                            isJumping = false;
+                        }
+                    }, 20); // Vitesse de descente
+                }
+
+                // Application de la montée
+                playerBottom += 5;
+                player.style.bottom = playerBottom + 'px';
+                upTime += 5;
+
+            }, 20); // Vitesse de montée
+        }
     }
 
-    // Calculer la position une première fois au chargement
-    updateJoystickBasePos();
-
-    // Recalculer la position si la fenêtre est redimensionnée (important pour mobile)
-    window.addEventListener('resize', updateJoystickBasePos);
-
-
-    joystickZone.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // Empêche le défilement de la page
-        if (touchId === null) { // Prend le premier doigt qui touche la zone
-            const touch = e.changedTouches[0];
-            touchId = touch.identifier;
-            
-            // Assurez-vous d'avoir la position de base la plus récente
-            updateJoystickBasePos(); 
-        }
-    }, { passive: false });
-
-    joystickZone.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        // Trouver le doigt qui a initié le mouvement
-        const touch = Array.from(e.changedTouches).find(t => t.identifier === touchId);
-
-        if (touch) {
-            // Calculer le déplacement (delta) par rapport au centre de la base
-            let deltaX = touch.clientX - joystickBasePos.x;
-            let deltaY = touch.clientY - joystickBasePos.y;
-
-            // Limiter la distance pour que le stick ne sorte pas de la base
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
-            if (distance > stickMaxMove) {
-                // Normaliser et multiplier par la distance maximale
-                deltaX = (deltaX / distance) * stickMaxMove;
-                deltaY = (deltaY / distance) * stickMaxMove;
-            }
-
-            // Déplacer le stick visuellement
-            joystickStick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-
-            // Mettre à jour les valeurs de mouvement (normalisées entre -1 et 1)
-            // L'axe Y est inversé pour les jeux (Haut = -Y de l'écran, mais +1 en jeu)
-            moveInput.x = deltaX / stickMaxMove;
-            moveInput.y = -deltaY / stickMaxMove; 
-        }
-    }, { passive: false });
-
-    joystickZone.addEventListener('touchend', (e) => {
-        // Trouver le doigt qui se lève
-        const touch = Array.from(e.changedTouches).find(t => t.identifier === touchId);
-        
-        if (touch) {
-            // Réinitialiser le joystick
-            touchId = null;
-            joystickStick.style.transform = `translate(0px, 0px)`;
-            moveInput.x = 0;
-            moveInput.y = 0;
+    // --- Écoute des événements clavier ---
+    document.addEventListener('keydown', (event) => {
+        // Code 32 est la barre d'espace, Code 38 est la flèche du haut
+        if (event.keyCode === 32 || event.keyCode === 38) {
+            jump();
         }
     });
 
-    // --- Logique du Bouton de Tir ---
-    shootButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        isShooting = true;
-        // console.log("TIR COMMENCÉ !");
-    }, { passive: false });
+    // --- Création des Obstacles ---
+    function createObstacle() {
+        if (isGameOver) return;
 
-    shootButton.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        isShooting = false;
-        // console.log("TIR ARRÊTÉ.");
-    }, { passive: false });
+        const obstacle = document.createElement('div');
+        obstacle.classList.add('obstacle');
+        gameContainer.appendChild(obstacle);
 
+        let obstacleRight = -15; // Commence juste à droite de l'écran
 
-    // --- Boucle de Jeu (Game Loop) ---
-    function gameLoop() {
-        // 1. Lire les entrées (moveInput et isShooting sont mis à jour par les listeners)
-        // Ceci est la ligne cruciale pour votre logique de jeu :
-        // console.log(`Mouvement: X=${moveInput.x.toFixed(2)}, Y=${moveInput.y.toFixed(2)} | Tir: ${isShooting}`);
-        
-        // 2. Mettre à jour la logique du jeu
-        // C'EST ICI QUE VOUS UTILISEREZ moveInput.x, moveInput.y et isShooting
-        // pour déplacer votre caméra/joueur, gérer les collisions, et lancer des actions.
+        function moveObstacle() {
+            if (isGameOver) return;
 
-        // 3. Rendre la scène
-        // Si vous utilisez Three.js, vous appelleriez ici le `renderer.render(scene, camera);`
-        
-        // Redemande au navigateur de lancer cette fonction à la prochaine frame
-        requestAnimationFrame(gameLoop);
+            obstacleRight += gameSpeed; // L'obstacle se déplace de droite à gauche
+            obstacle.style.right = obstacleRight + 'px';
+
+            // Vérification de la collision
+            if (obstacleRight < 50 + 20 && obstacleRight + 15 > 50 && playerBottom < 30 + 30) {
+                // 50 (player.left) + 20 (player.width)
+                // obstacleRight < [position max du joueur pour collision]
+                // obstacleRight + 15 (obstacle.width) > [position min du joueur pour collision]
+                // playerBottom < 30 (sol) + 30 (obstacle.height)
+                gameOver();
+                return;
+            }
+
+            // Si l'obstacle sort de l'écran à gauche (c'est-à-dire réussi à passer)
+            if (obstacleRight > gameContainer.clientWidth) {
+                // Supprimer l'obstacle
+                obstacle.remove();
+                // Augmenter le score
+                score++;
+                scoreDisplay.textContent = score;
+                // Arrêter cette fonction d'animation
+                return;
+            }
+
+            // Nouvelle frame d'animation
+            requestAnimationFrame(moveObstacle);
+        }
+
+        // Lance le mouvement de l'obstacle
+        requestAnimationFrame(moveObstacle);
     }
 
-    // Lancer le jeu
-    console.log("Jeu lancé. Initialisation de la boucle...");
-    gameLoop();
-});
+    // --- Fin de Partie ---
+    function gameOver() {
+        isGameOver = true;
+        clearInterval(obstacleCreationInterval);
+        
+        // Arrêter tous les obstacles en cours
+        const existingObstacles = document.querySelectorAll('.obstacle');
+        existingObstacles.forEach(obs => obs.remove()); // On les supprime pour simplifier
+
+        finalScoreDisplay.textContent = score;
+        gameOverScreen.style.display = 'flex'; // Afficher l'écran Game Over
+    }
+
+    // --- Démarrer le Jeu ---
+    function startGame() {
+        // Nettoyage de l'état précédent
+        isGameOver = false;
+        score = 0;
+        scoreDisplay.textContent = score;
+        gameOverScreen.style.display = 'none';
+        
+        playerBottom = initialPlayerBottom;
+        player.style.bottom = initialPlayerBottom + 'px';
+        isJumping = false;
+
+        // Lance la création d'obstacles toutes les 1.5 à 3 secondes
+        const createLoop = () => {
+            if (!isGameOver) {
+                createObstacle();
+                let randomTime = Math.random() * 1500 + 1500; // Entre 1500ms et 3000ms
+                obstacleCreationInterval = setTimeout(createLoop, randomTime);
+            }
+        };
+        createLoop();
+    }
+
+    // Lancer le jeu au chargement de la page
+    window.onload = startGame;
 </script>
 
+</body>
 </html>
