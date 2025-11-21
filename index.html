@@ -2,130 +2,49 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mon Flux Vidéo Vertical</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouvreur de Liens</title>
     <style>
-        /* --- CSS pour la mise en page TikTok-like (essentiel) --- */
-        
-        /* Réinitialisation de base */
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            overflow: hidden; /* Empêche le défilement général */
-            background-color: #000; /* Fond noir pour simuler l'application */
-            font-family: Arial, sans-serif;
-            color: white;
-        }
-
-        /* Conteneur principal (le défilement) */
-        #video-feed {
-            width: 100%;
-            height: 100vh; /* 100% de la hauteur de la fenêtre */
-            overflow-y: scroll; /* Permet le défilement vertical */
-            
-            /* LA MAGIE DU SCROLL-SNAP */
-            scroll-snap-type: y mandatory; /* Oblige le scroll à s'arrêter sur les points d'accroche */
-        }
-
-        /* Conteneur de chaque vidéo (la "page") */
-        .video-container {
-            width: 100vw; /* 100% de la largeur */
-            height: 100vh; /* 100% de la hauteur */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000;
-            
-            /* Point d'accroche pour le scroll-snap */
-            scroll-snap-align: start; 
-        }
-
-        /* Style pour les iframes TikTok générées */
-        /* Centre le player dans le conteneur */
-        .tiktok-embed-container {
-            width: 100%; 
-            height: 100%;
-            max-width: 450px; /* Taille typique d'un téléphone */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        /* Petit style de chargement */
-        .loading-text {
-            color: #2a9d8f;
-            font-size: 1.2em;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+        button { padding: 15px 30px; font-size: 1.2em; cursor: pointer; background-color: #2a9d8f; color: white; border: none; border-radius: 5px; }
+        button:hover { background-color: #264653; }
+        #lien-input { padding: 10px; font-size: 1em; width: 80%; max-width: 400px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px;}
     </style>
 </head>
 <body>
 
-    <div id="video-feed">
-        </div>
+    <h1>Ouvrir plusieurs liens</h1>
+    <p>
+        Pour des raisons de sécurité du navigateur, vous devez cliquer sur le bouton ci-dessous pour lancer l'ouverture des pages.
+    </p>
 
-    <script async src="https://www.tiktok.com/embed.js"></script>
-
+    <input type="text" id="lien-input" placeholder="Entrez votre URL ici (ex: https://google.com)">
+    
+    <button onclick="ouvrirMultiplesFenetres()">
+        Ouvrir 5 pages web
+    </button>
+    
     <script>
-        // --- LIENS TIKTOK EXISTANTS ---
-        // IMPORTANT : Utilisez le lien PARTAGEABLE complet de la vidéo.
-        // Exemple: https://www.tiktok.com/@tiktok/video/7309995831934989601
-        
-        const tiktokLinks = [
-            "https://www.tiktok.com/@tiktok/video/7309995831934989601",
-            "https://www.tiktok.com/@nasa/video/7307682977457782048",
-            "https://www.tiktok.com/@google/video/7306899144806305066",
-            "https://www.tiktok.com/@duolingo/video/7309328221665094955",
-            "https://www.tiktok.com/@therock/video/7310025757962134827"
-            // Ajoutez autant de liens que vous voulez ici
-        ];
-
-        const videoFeed = document.getElementById('video-feed');
-
-        /** * Génère la structure HTML et le blockquote requis par TikTok 
-         * pour chaque lien, et l'ajoute au flux.
-         */
-        function loadTiktokFeed() {
-            tiktokLinks.forEach(link => {
-                // 1. Créer le conteneur de la "page"
-                const container = document.createElement('div');
-                container.className = 'video-container';
-                
-                // 2. Créer un conteneur pour centrer l'embed
-                const embedWrapper = document.createElement('div');
-                embedWrapper.className = 'tiktok-embed-container';
-                embedWrapper.innerHTML = `<div class="loading-text">Chargement de la vidéo TikTok...</div>`;
-
-                // 3. Créer le blockquote TikTok (requis par l'API)
-                const blockquote = document.createElement('blockquote');
-                blockquote.className = 'tiktok-embed';
-                blockquote.cite = link; // Le lien est mis dans l'attribut cite
-                blockquote.setAttribute('data-video-id', link.split('/').pop()); // Le script TikTok le veut
-                blockquote.style.maxWidth = '605px';
-                blockquote.style.minWidth = '325px';
-                
-                // 4. Ajouter le blockquote au wrapper, et le wrapper au container
-                embedWrapper.appendChild(blockquote);
-                container.appendChild(embedWrapper);
-                
-                // 5. Ajouter le tout au flux principal
-                videoFeed.appendChild(container);
-            });
-        }
-        
-        // --- INITIALISATION ---
-        window.onload = function() {
-            loadTiktokFeed();
+        function ouvrirMultiplesFenetres() {
+            const urlBase = document.getElementById('lien-input').value;
             
-            // Le script embed.js (chargé dans le head) va détecter 
-            // tous les blockquotes et les transformer en iframes fonctionnelles.
-            // On s'assure qu'il est bien chargé après avoir inséré tous les éléments.
-            if (window.tiktok) {
-                 window.tiktok.all();
+            if (!urlBase || !urlBase.startsWith('http')) {
+                alert("Veuillez entrer un lien valide commençant par http:// ou https://");
+                return;
             }
-        };
 
+            // Nombre de fenêtres à ouvrir (vous pouvez monter jusqu'à 10, mais cela peut être intrusif)
+            const nombreDeFenetres = 5; 
+            
+            for (let i = 0; i < nombreDeFenetres; i++) {
+                // Le navigateur autorise l'ouverture si elle est déclenchée par un clic utilisateur
+                // Utiliser window.open() pour ouvrir un nouvel onglet
+                window.open(urlBase, '_blank'); 
+            }
+
+            // Message pour l'utilisateur
+            alert(`${nombreDeFenetres} pages ont été ouvertes. Si vous ne les voyez pas, vérifiez si votre navigateur a bloqué des pop-ups.`);
+        }
     </script>
 
 </body>
