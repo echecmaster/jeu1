@@ -14,105 +14,67 @@
             width: 100vw;
             height: 100vh;
             overflow: hidden;
-            background-color: #111; /* Fond de base */
+            background-color: #111;
         }
 
-        /* Le conteneur du jeu (la "scène" 3D) */
         #game-container {
             position: relative;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            
-            /* C'est la propriété clé pour la 3D. */
-            /* Elle définit à quelle "distance" on regarde la scène. */
             perspective: 800px; 
-            
-            /* Fond de ciel (un dégradé) */
             background: linear-gradient(to bottom, #87CEEB 0%, #B0E0E6 70%);
         }
 
-        /* Le "monde" qui contient le sol et les murs */
-        /* C'est cet élément qui bougera en 3D */
         #world {
             position: absolute;
             width: 100%;
             height: 100%;
-            
-            /* Active la 3D pour les enfants (sol, murs) */
             transform-style: preserve-3d;
             
-            /* Position initiale du joueur (100px au-dessus du sol) */
-            /* On bouge le *monde* vers le bas pour que le *joueur* (caméra) soit en hauteur */
-            transform: translateY(-100px);
+            /* L'ordre des transformations est important */
+            /* On applique les translations (mouvement) PUIS les rotations (caméra) */
+            /* La position initiale est gérée par le JS */
         }
 
-        /* Le sol */
         #ground {
             position: absolute;
             width: 4000px;
             height: 4000px;
-            
-            /* Centre le sol */
             left: 50%;
             top: 50%;
             
-            /* * C'est la transformation 3D clé :
-             * 1. rotateX(90deg) : Fait basculer le plan pour qu'il soit horizontal (le "sol")
-             * 2. translateZ(-100px) : Le "descend" pour qu'il soit sous nos pieds (correspond à la hauteur du joueur)
-             * 3. translate(-50%, -50%) : Astuce pour centrer le plan
+            /* * --- CORRECTION IMPORTANTE ---
+             * J'ai supprimé le 'translateZ(-100px)' d'ici.
+             * La hauteur du joueur (le fait d'être "au-dessus" du sol)
+             * est maintenant gérée *uniquement* par la transformation du #world.
+             * Le sol est maintenant à Y=0 dans le monde.
             */
-            transform: translate(-50%, -50%) rotateX(90deg) translateZ(-100px);
+            transform: translate(-50%, -50%) rotateX(90deg);
             
-            /* Style de quadrillage pour voir le mouvement */
             background-size: 100px 100px;
             background-image:
                 linear-gradient(to right, #666 1px, transparent 1px),
                 linear-gradient(to bottom, #666 1px, transparent 1px);
-            background-color: #4a7c4a; /* Couleur d'herbe/sol */
+            background-color: #4a7c4a;
         }
         
-        /* Style de base pour les murs */
+        /* Murs (inchangés) */
         .wall {
             position: absolute;
             width: 200px;
-            height: 300px; /* Hauteur du mur */
-            background-color: #8B4513; /* Couleur marron (mur) */
+            height: 300px;
+            background-color: #8B4513;
             border: 4px solid #5a2d0c;
-            
-            /* Centre l'origine du mur pour les transformations */
             transform-origin: 50% 50%;
         }
-
-        /* --- Placement des murs dans le monde 3D --- */
-        /* Chaque mur est déplacé avec translate3d(x, y, z) */
-        /* y = 0 (sur le sol), z = "profondeur" */
-
-        #wall-1 {
-            /* 200px à gauche, 500px "devant" */
-            transform: translate3d(-200px, 0, 500px);
-        }
-        
-        #wall-2 {
-            /* 200px à droite, 500px "devant" */
-            transform: translate3d(200px, 0, 500px);
-        }
-
-        #wall-3 {
-            /* Loin devant, tourné de 90 degrés */
-            transform: translate3d(0, 0, 1000px) rotateY(90deg);
-            background-color: #b03a2e; /* Mur rouge */
-        }
-
-        #wall-4 {
-            /* Mur sur le côté */
-            transform: translate3d(-500px, 0, 800px) rotateY(90deg);
-            background-color: #2e86c1; /* Mur bleu */
-        }
+        #wall-1 { transform: translate3d(-200px, 0, 500px); }
+        #wall-2 { transform: translate3d(200px, 0, 500px); }
+        #wall-3 { transform: translate3d(0, 0, 1000px) rotateY(90deg); background-color: #b03a2e; }
+        #wall-4 { transform: translate3d(-500px, 0, 800px) rotateY(90deg); background-color: #2e86c1; }
 
 
-        /* --- Interface Utilisateur (UI) --- */
-
+        /* --- UI (inchangée) --- */
         #joystick-container {
             position: absolute;
             bottom: 40px;
@@ -121,8 +83,8 @@
             height: 150px;
             background-color: rgba(128, 128, 128, 0.4);
             border-radius: 50%;
+            z-index: 10; /* S'assure que l'UI est au-dessus de tout */
         }
-
         #joystick-knob {
             position: absolute;
             width: 70px;
@@ -135,8 +97,6 @@
             user-select: none;
             -webkit-user-select: none;
         }
-
-        /* Le nouveau bouton de saut */
         #jump-button {
             position: absolute;
             bottom: 40px;
@@ -146,8 +106,6 @@
             background-color: rgba(60, 200, 60, 0.7);
             border-radius: 50%;
             border: 4px solid rgba(255, 255, 255, 0.5);
-            
-            /* Centrer le texte/emoji */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -155,6 +113,7 @@
             color: white;
             user-select: none;
             -webkit-user-select: none;
+            z-index: 10;
         }
     </style>
 </head>
@@ -163,7 +122,6 @@
     <div id="game-container">
         <div id="world">
             <div id="ground"></div>
-            
             <div class="wall" id="wall-1"></div>
             <div class="wall" id="wall-2"></div>
             <div class="wall" id="wall-3"></div>
@@ -174,16 +132,14 @@
     <div id="joystick-container">
         <div id="joystick-knob"></div>
     </div>
-    
-    <div id="jump-button">
-        ⬆️
-    </div>
+    <div id="jump-button">⬆️</div>
 
 
     <script>
         // --- 3. Le JavaScript (Logique) ---
 
         // Éléments du DOM
+        const gameContainer = document.getElementById('game-container');
         const world = document.getElementById('world');
         const joystickContainer = document.getElementById('joystick-container');
         const joystickKnob = document.getElementById('joystick-knob');
@@ -194,21 +150,28 @@
         let worldZ = 0;
         
         // Variables pour le saut
-        const playerHeight = 100; // Hauteur initiale du joueur
+        const playerHeight = 100; // Hauteur initiale du joueur au-dessus du sol (Y=0)
         let playerY = playerHeight; // Position verticale actuelle du joueur
         let jumpVelocity = 0;
-        const gravity = 1; // Force de la gravité
+        const gravity = 1;
         let isJumping = false;
 
         // Variables du Joystick
         let joystickActive = false;
         let joystickCenterX, joystickCenterY, maxDistance;
-        let moveX = 0;
-        let moveY = 0; // Note: moveY contrôle l'axe Z (profondeur)
+        let moveX = 0; // -1 (gauche) à 1 (droite)
+        let moveY = 0; // -1 (haut) à 1 (bas)
         const playerSpeed = 4;
 
-        // --- Gestion Joystick ---
+        // --- NOUVEAU : Variables pour la caméra (Look) ---
+        let isLooking = false;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        let rotationX = 0; // Rotation haut/bas (pitch)
+        let rotationY = 0; // Rotation gauche/droite (yaw)
+        const lookSensitivity = 0.2; // Sensibilité de la caméra
 
+        // --- Gestion Joystick (inchangée) ---
         joystickContainer.addEventListener('touchstart', (e) => {
             e.preventDefault(); 
             joystickActive = true;
@@ -217,88 +180,144 @@
             joystickCenterY = rect.top + rect.height / 2;
             maxDistance = joystickContainer.clientWidth / 2;
         });
+        
+        // --- Gestion du Saut (inchangée) ---
+        jumpButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startJump();
+        });
+        function startJump() {
+            if (!isJumping) {
+                isJumping = true;
+                jumpVelocity = 20;
+            }
+        }
 
-        window.addEventListener('touchmove', (e) => {
-            if (!joystickActive) return;
+        // --- NOUVEAU : Gestion de la caméra (Look) ---
+        
+        // On écoute le début du toucher sur le conteneur de jeu
+        gameContainer.addEventListener('touchstart', (e) => {
+            // e.target est l'élément exact qui a été touché
+            // Si on touche le joystick ou le bouton de saut, on ignore
+            if (joystickContainer.contains(e.target) || jumpButton.contains(e.target)) {
+                return;
+            }
             
+            // Empêche le défilement si on touche le fond du jeu
             e.preventDefault();
             
+            isLooking = true;
             const touch = e.touches[0];
-            const currentX = touch.clientX;
-            const currentY = touch.clientY;
+            lastTouchX = touch.clientX;
+            lastTouchY = touch.clientY;
+        });
+        
 
-            let deltaX = currentX - joystickCenterX;
-            let deltaY = currentY - joystickCenterY;
+        // --- Modifications des 'touchmove' et 'touchend' ---
+        // On les attache à 'window' pour ne pas perdre le suivi si le doigt sort de l'écran
+        
+        window.addEventListener('touchmove', (e) => {
+            // S'il n'y a pas de 'touch' actif, on sort
+            if (!e.touches[0]) return;
+            const touch = e.touches[0];
 
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            if (joystickActive) {
+                // Logique du Joystick (déplacée ici)
+                let deltaX = touch.clientX - joystickCenterX;
+                let deltaY = touch.clientY - joystickCenterY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-            if (distance > maxDistance) {
-                deltaX = (deltaX / distance) * maxDistance;
-                deltaY = (deltaY / distance) * maxDistance;
+                if (distance > maxDistance) {
+                    deltaX = (deltaX / distance) * maxDistance;
+                    deltaY = (deltaY / distance) * maxDistance;
+                }
+                joystickKnob.style.transform = `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)`;
+                moveX = deltaX / maxDistance;
+                moveY = deltaY / maxDistance;
+            
+            } else if (isLooking) {
+                // NOUVEAU : Logique de la Caméra
+                const deltaX = touch.clientX - lastTouchX;
+                const deltaY = touch.clientY - lastTouchY;
+                
+                // Rotation Y (gauche/droite) : inversée (glisser à droite = regarder à droite)
+                rotationY -= deltaX * lookSensitivity;
+                
+                // Rotation X (haut/bas)
+                rotationX += deltaY * lookSensitivity;
+                
+                // Limite la rotation haut/bas pour ne pas faire de "looping"
+                rotationX = Math.max(-90, Math.min(90, rotationX));
+                
+                // Met à jour la position de départ pour le prochain mouvement
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
             }
-
-            joystickKnob.style.transform = `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)`;
-
-            moveX = deltaX / maxDistance;
-            moveY = deltaY / maxDistance;
         });
 
         window.addEventListener('touchend', (e) => {
-            if (!joystickActive) return;
-            joystickActive = false;
-            joystickKnob.style.transform = 'translate(-50%, -50%)';
-            moveX = 0;
-            moveY = 0;
-        });
-
-        // --- Gestion du Saut ---
-        
-        jumpButton.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Empêche le zoom/défilement
-            startJump();
-        });
-
-        function startJump() {
-            // On ne peut sauter que si on est au sol
-            if (!isJumping) {
-                isJumping = true;
-                jumpVelocity = 20; // Force initiale du saut
+            // Réinitialise tous les états actifs
+            if (joystickActive) {
+                joystickActive = false;
+                joystickKnob.style.transform = 'translate(-50%, -50%)';
+                moveX = 0;
+                moveY = 0;
             }
-        }
+            if (isLooking) {
+                isLooking = false;
+            }
+        });
         
-        // --- Boucle de jeu (Game Loop) ---
+        // --- Boucle de jeu (Game Loop) MISE À JOUR ---
 
         function gameLoop() {
             
-            // 1. Gérer le saut et la gravité
+            // 1. Gérer le saut et la gravité (inchangé)
             if (isJumping) {
-                playerY += jumpVelocity; // Le joueur monte
-                jumpVelocity -= gravity; // La gravité le ralentit et le fait redescendre
+                playerY += jumpVelocity;
+                jumpVelocity -= gravity;
                 
-                // Si le joueur touche le sol
                 if (playerY <= playerHeight) {
-                    playerY = playerHeight; // Bloque au sol
+                    playerY = playerHeight;
                     jumpVelocity = 0;
                     isJumping = false;
                 }
             }
 
-            // 2. Gérer le déplacement (joystick)
-            // On inverse le mouvement : bouger le joystick "vers l'avant" (moveY < 0)
-            // fait "avancer" le monde vers nous (worldZ augmente).
+            // 2. Gérer le déplacement (Mise à jour majeure)
+            // Calcule le mouvement en fonction de la rotation de la caméra (rotationY)
             
-            // moveY contrôle la profondeur (axe Z)
-            worldZ -= moveY * playerSpeed;
+            const zMove = moveY * playerSpeed; // Négatif = "avant"
+            const xMove = moveX * playerSpeed; // Positif = "droite"
             
-            // moveX contrôle le déplacement latéral (axe X)
-            worldX -= moveX * playerSpeed;
+            // Convertit l'angle de rotation en radians pour la trigonométrie
+            const angle = rotationY * (Math.PI / 180);
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+            
+            // Calcule le déplacement relatif
+            // On inverse le mouvement car on bouge le *monde*, pas la *caméra*
+            
+            // (zMove * cosAngle) -> Mouvement avant/arrière
+            // (xMove * sinAngle) -> Mouvement latéral (strafe) sur l'axe Z
+            worldZ += zMove * cosAngle - xMove * sinAngle;
+            
+            // (zMove * sinAngle) -> Mouvement avant/arrière sur l'axe X
+            // (xMove * cosAngle) -> Mouvement latéral (strafe)
+            worldX += zMove * sinAngle + xMove * cosAngle;
+
 
             // 3. Mettre à jour la transformation 3D du monde
-            // On combine les 3 déplacements :
-            // - worldX (gauche/droite)
-            // - -playerY (haut/bas, négatif car on déplace le *monde*)
-            // - worldZ (avant/arrière)
-            world.style.transform = `translate3d(${worldX}px, ${-playerY}px, ${worldZ}px)`;
+            // On applique D'ABORD les translations (mouvement)
+            // PUIS les rotations (caméra)
+            world.style.transform = 
+                `translate3d(${-worldX}px, ${-playerY}px, ${-worldZ}px) ` +
+                `rotateX(${rotationX}deg) ` +
+                `rotateY(${rotationY}deg)`;
+                
+            // NOTE: On utilise -worldX, -worldZ et -playerY
+            // car le joueur est la caméra (statique) et c'est le monde qui bouge
+            // dans la direction opposée.
 
             // Rappeler la boucle
             requestAnimationFrame(gameLoop);
