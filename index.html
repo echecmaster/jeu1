@@ -2,398 +2,359 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Morpion Contre l'IA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Business Clicker 💰</title>
     <style>
-        /* Styles CSS */
+        /* CSS pour l'optimisation mobile et le style */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
-            background-color: #f4f4f9;
-            color: #333;
+            text-align: center;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 450px; /* Taille maximale pour simuler un téléphone */
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         h1 {
-            color: #007bff;
-            margin-bottom: 20px;
+            color: #2a9d8f;
+            margin-bottom: 10px;
+            font-size: 1.8em;
         }
 
-        #controls {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        #difficulty-select {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #007bff;
-            margin-right: 10px;
-        }
-
-        button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            background-color: #28a745;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        button:hover {
-            background-color: #218838;
-        }
-
-        #game-board {
-            display: grid;
-            grid-template-columns: repeat(3, 100px);
-            grid-template-rows: repeat(3, 100px);
-            gap: 5px;
+        #money-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #e76f51;
             margin: 20px 0;
-            background-color: #333;
-            border: 5px solid #333;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border: 2px solid #e76f51;
+            border-radius: 8px;
+            background-color: #fff3e0;
         }
 
-        .cell {
-            width: 100px;
-            height: 100px;
-            background-color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 60px;
-            font-weight: bold;
+        #click-button {
+            background-color: #2a9d8f;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.5em;
             cursor: pointer;
-            transition: background-color 0.1s;
+            border-radius: 50%;
+            box-shadow: 0 5px #264653;
+            margin-bottom: 30px;
+            transition: transform 0.1s, box-shadow 0.1s;
+            width: 80%;
+            height: 120px;
         }
 
-        .cell:hover:not(:empty) {
-            cursor: default; /* Empêche le curseur de pointer sur les cases déjà jouées */
+        #click-button:active {
+            box-shadow: 0 2px #264653;
+            transform: translateY(3px);
         }
 
-        .cell:hover:empty {
-            background-color: #e9e9e9;
+        #upgrade-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            width: 100%;
         }
 
-        .cell.x {
-            color: #007bff; /* Bleu pour X */
+        .upgrade-item {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
         }
 
-        .cell.o {
-            color: #dc3545; /* Rouge pour O */
-        }
-
-        #message {
-            margin-top: 15px;
-            font-size: 20px;
+        .upgrade-item button {
+            background-color: #f4a261;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
             font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .upgrade-item button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .upgrade-info {
+            flex-grow: 1;
+        }
+
+        .upgrade-info strong {
+            display: block;
+            font-size: 1.1em;
+            color: #264653;
+        }
+        
+        #save-load-buttons {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        #save-load-buttons button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        #save-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #reset-button {
+            background-color: #f44336;
+            color: white;
         }
     </style>
 </head>
 <body>
 
-    <h1>🎮 Morpion Contre l'IA</h1>
-
-    <div id="controls">
-        <label for="difficulty-select">Difficulté :</label>
-        <select id="difficulty-select">
-            <option value="easy">Facile</option>
-            <option value="normal">Normal</option>
-            <option value="hard">Difficile</option>
-            <option value="impossible">Impossible</option>
-        </select>
-        <button onclick="startGame()">Nouvelle Partie</button>
+<div id="game-container">
+    <h1>Business Empire 💰</h1>
+    
+    <div id="money-display">$ <span id="money">0.00</span></div>
+    
+    <button id="click-button">
+        Faire un Deal ! <br> (+ $<span id="click-value">1</span>)
+    </button>
+    
+    <div id="per-sec-display">
+        Gains/seconde: $<span id="per-sec">0.00</span>
     </div>
 
-    <div id="game-board">
-        </div>
+    <h2>Améliorations (Business)</h2>
+    <ul id="upgrade-list">
+        </ul>
+    
+    <div id="save-load-buttons">
+        <button id="save-button" onclick="saveGame()">Sauvegarder</button>
+        <button id="reset-button" onclick="resetGame()">Recommencer</button>
+    </div>
+    
+</div>
 
-    <div id="message">Cliquez sur **Nouvelle Partie** pour commencer.</div>
+<script>
+    // --- VARIABLES GLOBALES ---
+    let money = 0;
+    let clickValue = 1;
+    let gameInterval;
 
-    <script>
-        // Variables globales
-        let board;
-        let cells;
-        let currentPlayer = 'X'; // Le joueur humain commence toujours
-        let gameActive = false;
-        let difficulty = 'impossible'; // Difficulté par défaut
+    const upgrades = [
+        { id: 'lemonade', name: 'Stand de Limonade', basePrice: 15, basePerSec: 0.1, count: 0 },
+        { id: 'newspaper', name: 'Livraison de Journaux', basePrice: 100, basePerSec: 1, count: 0 },
+        { id: 'carwash', name: 'Lavage de Voitures', basePrice: 1100, basePerSec: 8, count: 0 },
+        { id: 'pizzashop', name: 'Pizzeria', basePrice: 12000, basePerSec: 47, count: 0 },
+        { id: 'startup', name: 'Startup Tech', basePrice: 130000, basePerSec: 260, count: 0 }
+    ];
 
-        // Combinaisons gagnantes
-        const WINNING_COMBOS = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Lignes
-            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colonnes
-            [0, 4, 8], [2, 4, 6]             // Diagonales
-        ];
+    // --- FONCTIONS DU JEU ---
 
-        // Éléments du DOM
-        const gameBoard = document.getElementById('game-board');
-        const messageElement = document.getElementById('message');
-        const difficultySelect = document.getElementById('difficulty-select');
+    // 1. Mise à jour de l'affichage de l'argent
+    function updateDisplay() {
+        document.getElementById('money').textContent = money.toFixed(2);
+        document.getElementById('click-value').textContent = clickValue.toFixed(2);
+        
+        const perSecValue = calculatePerSecond();
+        document.getElementById('per-sec').textContent = perSecValue.toFixed(2);
+    }
 
-        // Initialisation du jeu
-        document.addEventListener('DOMContentLoaded', () => {
-            difficultySelect.addEventListener('change', (e) => {
-                difficulty = e.target.value;
-            });
-            createBoardCells();
+    // 2. Calcul des gains par seconde
+    function calculatePerSecond() {
+        return upgrades.reduce((sum, item) => {
+            const multiplier = Math.pow(1.15, item.count); // Prix augmente de 15% par achat
+            return sum + (item.basePerSec * item.count * multiplier); 
+        }, 0);
+    }
+    
+    // 3. Le clic principal
+    function doClick() {
+        money += clickValue;
+        updateDisplay();
+    }
+
+    // 4. Génération du HTML des améliorations
+    function renderUpgrades() {
+        const list = document.getElementById('upgrade-list');
+        list.innerHTML = ''; 
+
+        upgrades.forEach(item => {
+            const price = calculatePrice(item);
+            const perSec = calculateItemPerSecond(item);
+
+            const li = document.createElement('li');
+            li.className = 'upgrade-item';
+            li.innerHTML = `
+                <div class="upgrade-info">
+                    <strong>${item.name} (x${item.count})</strong>
+                    <span>Génère: $${perSec.toFixed(2)}/s</span>
+                    <span>Prochain prix: $${price.toFixed(2)}</span>
+                </div>
+                <button onclick="buyUpgrade('${item.id}')" id="btn-${item.id}">
+                    Acheter
+                </button>
+            `;
+            list.appendChild(li);
+            
+            // Mettre à jour l'état du bouton
+            updateUpgradeButton(item.id, price);
         });
+    }
+    
+    // 5. Calcul du prix d'une amélioration
+    function calculatePrice(item) {
+        return item.basePrice * Math.pow(1.15, item.count);
+    }
+    
+    // 6. Calcul du gain/sec total pour cet item
+    function calculateItemPerSecond(item) {
+        return item.basePerSec * item.count;
+    }
 
-        // Fonction pour créer les cellules du plateau
-        function createBoardCells() {
-            gameBoard.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.dataset.index = i;
-                cell.addEventListener('click', handleCellClick);
-                gameBoard.appendChild(cell);
+    // 7. Achat d'une amélioration
+    function buyUpgrade(id) {
+        const item = upgrades.find(up => up.id === id);
+        if (!item) return;
+
+        const price = calculatePrice(item);
+
+        if (money >= price) {
+            money -= price;
+            item.count++;
+            
+            // Mettre à jour le gain par clic si c'est la limonade (premier item)
+            if (item.id === 'lemonade') {
+                clickValue += 0.5;
             }
-            cells = document.querySelectorAll('.cell');
+            
+            renderUpgrades();
+            updateDisplay();
+            saveGame(); // Sauvegarder après l'achat
+        } else {
+            alert("Pas assez d'argent !");
         }
-
-        // Fonction pour démarrer/réinitialiser le jeu
-        function startGame() {
-            board = Array(9).fill(null);
-            currentPlayer = 'X';
-            gameActive = true;
-            messageElement.textContent = "Votre tour (X)";
-            cells.forEach(cell => {
-                cell.textContent = '';
-                cell.classList.remove('x', 'o');
-                cell.addEventListener('click', handleCellClick, { once: true });
-            });
-            difficulty = difficultySelect.value;
-            // Si l'IA (O) doit commencer, l'IA joue immédiatement
-            // Note : Par convention, le joueur (X) commence dans cette implémentation.
+    }
+    
+    // 8. Mise à jour des boutons 'Acheter' (disponibilité)
+    function updateUpgradeButton(id, price) {
+        const button = document.getElementById(`btn-${id}`);
+        if (button) {
+            button.disabled = money < price;
         }
+    }
 
-        // Gestion du clic sur une cellule
-        function handleCellClick(e) {
-            const cell = e.target;
-            const index = parseInt(cell.dataset.index);
+    // 9. Boucle de jeu (tick)
+    function gameLoop() {
+        const perSec = calculatePerSecond();
+        money += perSec / 10; // Ajout 10 fois par seconde (100ms)
+        
+        // Mettre à jour l'affichage et les boutons
+        updateDisplay();
+        upgrades.forEach(item => {
+            const price = calculatePrice(item);
+            updateUpgradeButton(item.id, price);
+        });
+    }
 
-            if (!gameActive || board[index] !== null || currentPlayer === 'O') {
-                return;
-            }
+    // --- FONCTIONS DE SAUVEGARDE (Local Storage) ---
 
-            // Mouvement du joueur (X)
-            makeMove(cell, index, currentPlayer);
+    function saveGame() {
+        const saveData = {
+            money: money,
+            clickValue: clickValue,
+            upgrades: upgrades.map(item => ({
+                id: item.id,
+                count: item.count
+            }))
+        };
+        // Sauvegarde au format JSON dans le stockage local du navigateur
+        localStorage.setItem('businessClickerSave', JSON.stringify(saveData));
+        console.log("Jeu sauvegardé !");
+    }
 
-            if (checkGameStatus()) {
-                return;
-            }
-
-            // Changement au tour de l'IA (O)
-            currentPlayer = 'O';
-            messageElement.textContent = "Tour de l'IA (O)...";
-
-            // Délai pour simuler la "réflexion" de l'IA
-            setTimeout(aiMove, 500);
-        }
-
-        // Fonction pour effectuer un mouvement
-        function makeMove(cell, index, player) {
-            board[index] = player;
-            cell.textContent = player;
-            cell.classList.add(player.toLowerCase());
-            cell.removeEventListener('click', handleCellClick); // Empêche de recliquer
-        }
-
-        // Vérifie l'état du jeu (victoire ou égalité)
-        function checkGameStatus() {
-            if (checkWin(board, currentPlayer)) {
-                messageElement.textContent = `🎉 Le joueur ${currentPlayer} gagne !`;
-                gameActive = false;
-                return true;
-            } else if (board.every(cell => cell !== null)) {
-                messageElement.textContent = "🤝 Égalité !";
-                gameActive = false;
-                return true;
-            }
-            return false;
-        }
-
-        // Vérifie si un joueur a gagné
-        function checkWin(currentBoard, player) {
-            return WINNING_COMBOS.some(combination => {
-                return combination.every(index => {
-                    return currentBoard[index] === player;
+    function loadGame() {
+        const savedData = localStorage.getItem('businessClickerSave');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            
+            money = data.money || 0;
+            clickValue = data.clickValue || 1;
+            
+            // Mise à jour des compteurs des améliorations
+            if (data.upgrades) {
+                data.upgrades.forEach(savedItem => {
+                    const gameItem = upgrades.find(up => up.id === savedItem.id);
+                    if (gameItem) {
+                        gameItem.count = savedItem.count;
+                    }
                 });
-            });
+            }
+            console.log("Jeu chargé !");
+        } else {
+            console.log("Aucune sauvegarde trouvée.");
         }
-
-        // Logique de jeu de l'IA (O)
-        function aiMove() {
-            if (!gameActive) return;
-
-            let moveIndex;
-
-            switch (difficulty) {
-                case 'easy':
-                    moveIndex = getEasyMove(board);
-                    break;
-                case 'normal':
-                    moveIndex = getNormalMove(board);
-                    break;
-                case 'hard':
-                    moveIndex = getHardMove(board);
-                    break;
-                case 'impossible':
-                default:
-                    moveIndex = getBestMove(board);
-                    break;
-            }
-
-            if (moveIndex !== undefined && board[moveIndex] === null) {
-                const cell = cells[moveIndex];
-                makeMove(cell, moveIndex, 'O');
-
-                if (!checkGameStatus()) {
-                    // Changement au tour du joueur (X)
-                    currentPlayer = 'X';
-                    messageElement.textContent = "Votre tour (X)";
-                }
-            }
+    }
+    
+    function resetGame() {
+        if (confirm("Êtes-vous sûr de vouloir tout recommencer ? Votre progression sera perdue.")) {
+            localStorage.removeItem('businessClickerSave');
+            money = 0;
+            clickValue = 1;
+            upgrades.forEach(item => { item.count = 0; });
+            initGame();
+            alert("Jeu réinitialisé.");
         }
+    }
 
-        // --- Stratégies d'IA par Difficulté ---
+    // --- INITIALISATION ---
 
-        // 1. IA Facile (Coup aléatoire)
-        function getEasyMove(currentBoard) {
-            const availableMoves = currentBoard
-                .map((val, index) => val === null ? index : null)
-                .filter(index => index !== null);
+    function initGame() {
+        loadGame(); // Essayer de charger la sauvegarde au démarrage
+        
+        // Attacher l'événement de clic
+        document.getElementById('click-button').addEventListener('click', doClick);
+        
+        // Démarrer la boucle de jeu (toutes les 100ms pour un calcul par seconde précis)
+        if (gameInterval) clearInterval(gameInterval); // S'assurer qu'il n'y en a qu'un
+        gameInterval = setInterval(gameLoop, 100); 
+        
+        // Affichage initial
+        renderUpgrades();
+        updateDisplay();
+    }
 
-            if (availableMoves.length > 0) {
-                const randomIndex = Math.floor(Math.random() * availableMoves.length);
-                return availableMoves[randomIndex];
-            }
-            return undefined; // Égalité ou erreur (ne devrait pas arriver si le jeu est actif)
-        }
+    // Démarrer le jeu quand la page est chargée
+    window.onload = initGame;
+    
+</script>
 
-        // 2. IA Normale (Bloque le joueur 50% du temps, sinon aléatoire)
-        function getNormalMove(currentBoard) {
-            if (Math.random() < 0.5) { // 50% de chance d'être "stupide"
-                return getEasyMove(currentBoard);
-            }
-
-            // Essayer de gagner
-            let winningMove = findWinningMove(currentBoard, 'O');
-            if (winningMove !== undefined) return winningMove;
-
-            // Essayer de bloquer le joueur
-            let blockingMove = findWinningMove(currentBoard, 'X');
-            if (blockingMove !== undefined) return blockingMove;
-
-            // Sinon, coup aléatoire
-            return getEasyMove(currentBoard);
-        }
-
-        // 3. IA Difficile (Minimax avec profondeur limitée)
-        function getHardMove(currentBoard) {
-            // Utilise Minimax mais avec une profondeur limitée (ex: 2 ou 3)
-            // Pour simplifier, on utilisera une version qui ne va pas jusqu'au bout,
-            // mais qui privilégie les coups centraux/coins et bloque le joueur.
-            // On peut aussi utiliser Minimax complet avec une probabilité d'erreur (voir Impossible pour le Minimax complet)
-            if (Math.random() < 0.2) { // 20% de chance d'erreur (Minimax avec un coup aléatoire au lieu du meilleur)
-                return getEasyMove(currentBoard);
-            }
-            // Sinon, coup "presque" parfait (Minimax complet ici, mais vous pourriez le simplifier)
-            return getBestMove(currentBoard);
-        }
-
-        // Fonction utilitaire pour trouver un coup gagnant/bloquant
-        function findWinningMove(currentBoard, player) {
-            for (const combo of WINNING_COMBOS) {
-                const [a, b, c] = combo;
-                const line = [currentBoard[a], currentBoard[b], currentBoard[c]];
-                const playerTiles = line.filter(tile => tile === player).length;
-                const emptyTiles = line.filter(tile => tile === null).length;
-
-                if (playerTiles === 2 && emptyTiles === 1) {
-                    // C'est le coup !
-                    return combo.find(index => currentBoard[index] === null);
-                }
-            }
-            return undefined;
-        }
-
-        // 4. IA Impossible (Algorithme Minimax complet)
-        function getBestMove(currentBoard) {
-            return minimax(currentBoard, 'O').index;
-        }
-
-        // L'algorithme Minimax
-        function minimax(newBoard, player) {
-            const availableSpots = newBoard
-                .map((val, index) => val === null ? index : null)
-                .filter(index => index !== null);
-
-            // Conditions terminales
-            if (checkWin(newBoard, 'X')) {
-                return { score: -10 }; // X (joueur) gagne : score négatif pour l'IA
-            } else if (checkWin(newBoard, 'O')) {
-                return { score: 10 };  // O (IA) gagne : score positif pour l'IA
-            } else if (availableSpots.length === 0) {
-                return { score: 0 };   // Égalité
-            }
-
-            // Collecter tous les résultats des mouvements possibles
-            const moves = [];
-
-            for (let i = 0; i < availableSpots.length; i++) {
-                const move = {};
-                const index = availableSpots[i];
-
-                move.index = index;
-                newBoard[index] = player; // Faire le mouvement
-
-                // Appeler minimax récursivement
-                if (player === 'O') {
-                    const result = minimax(newBoard, 'X'); // Le prochain joueur est X (le MINIMIZER)
-                    move.score = result.score;
-                } else {
-                    const result = minimax(newBoard, 'O'); // Le prochain joueur est O (le MAXIMIZER)
-                    move.score = result.score;
-                }
-
-                newBoard[index] = null; // Annuler le mouvement (Backtracking)
-                moves.push(move);
-            }
-
-            // Déterminer le meilleur mouvement
-            let bestMove;
-            if (player === 'O') {
-                // MAXIMIZER (IA) : choisir le mouvement avec le score le plus élevé
-                let bestScore = -Infinity;
-                for (let i = 0; i < moves.length; i++) {
-                    if (moves[i].score > bestScore) {
-                        bestScore = moves[i].score;
-                        bestMove = moves[i];
-                    }
-                }
-            } else {
-                // MINIMIZER (Joueur) : choisir le mouvement avec le score le plus faible
-                let bestScore = Infinity;
-                for (let i = 0; i < moves.length; i++) {
-                    if (moves[i].score < bestScore) {
-                        bestScore = moves[i].score;
-                        bestMove = moves[i];
-                    }
-                }
-            }
-
-            return bestMove;
-        }
-    </script>
 </body>
 </html>
