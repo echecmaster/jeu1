@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Plateforme 3D v2</title>
+    <title>Jeu 3D - Plateforme XZ avec Cylindre</title>
     <style>
         /* --- Styles Généraux --- */
         body {
             margin: 0;
             height: 100vh;
             overflow: hidden; 
-            background-color: #111; /* Fond plus sombre */
+            background-color: #111;
             color: #fff;
             font-family: sans-serif;
             display: flex;
@@ -19,79 +19,80 @@
             flex-direction: row; 
         }
 
-        /* --- Styles de la Scène 3D --- */
+        /* --- 1. Scène et Caméra Fixe --- */
         .scene {
-            /* On agrandit la scène pour voir plus de la plateforme */
             width: 80vw; 
             height: 70vh;
             perspective: 1200px;
             transform-style: preserve-3d;
-            
-            /* NOUVELLE CAMÉRA : "en face" et légèrement au-dessus */
+            /* Caméra "en face" (angle plongeant) */
             transform: rotateX(-25deg); 
         }
 
+        /* --- 2. Plateforme (Grande et Quadrillée) --- */
         .platform {
-            /* NOUVELLE TAILLE : Beaucoup plus grand */
             width: 1000px;
             height: 1000px;
             
-            /* NOUVEAU MOTIF : Grille à carreaux */
+            /* Motif à carreaux */
             background-color: #444;
             background-image: 
-                repeating-linear-gradient(
-                    0deg, 
-                    transparent, 
-                    transparent 49px, 
-                    #555 49px, 
-                    #555 50px
-                ),
-                repeating-linear-gradient(
-                    90deg, 
-                    transparent, 
-                    transparent 49px, 
-                    #555 49px, 
-                    #555 50px
-                );
-            background-size: 50px 50px; /* Taille de chaque carreau */
+                repeating-linear-gradient(0deg, transparent, transparent 49px, #555 49px, #555 50px),
+                repeating-linear-gradient(90deg, transparent, transparent 49px, #555 49px, #555 50px);
+            background-size: 50px 50px;
 
-            /* On met la plateforme à plat sur l'axe X-Z */
+            /* Rotation pour la mettre à plat sur X-Z */
             transform: rotateX(90deg);
             
-            /* Centrage de la grande plateforme dans la scène */
             position: absolute;
             left: 50%;
             top: 50%;
-            /* Astuce pour centrer après rotation */
+            /* Centrage dans la scène (moitié de 1000px) */
             margin-left: -500px; 
             margin-top: -500px; 
-
             position: relative; 
         }
 
-        /* --- NOUVEAU : Le Personnage (Cylindre) --- */
+        /* --- 3. Personnage (Cylindre 3D) --- */
         .character {
-            /* Forme de cylindre (rectangle vu de côté) */
-            width: 25px;
-            height: 40px; /* Plus haut que large */
+            width: 25px;   /* Diamètre */
+            height: 40px;  /* Hauteur du corps */
+            
+            /* Le corps du cylindre (côtés arrondis) */
             background-color: #ff4500;
             border: 2px solid #b33000;
-            border-radius: 8px; /* Coins arrondis pour l'effet */
+            border-radius: 12.5px; 
             
             position: absolute;
-            left: 50%; /* Position de départ (sera gérée par JS) */
-            top: 50%; 
+            left: 50%; /* Géré par JS */
+            top: 50%;  /* Géré par JS */
             
-            /* * On le "soulève" de moitié (20px) pour qu'il soit "posé" 
-             * et on le déplace sur l'axe Z (hauteur du saut) 
-            */
-            transform: translateY(-20px) translateZ(0px);
+            /* ESSENTIEL : Active la 3D pour le chapeau */
+            transform-style: preserve-3d;
             
-            /* Point d'origine de la transformation (le "bas" du cylindre) */
+            /* Ancrage pour le saut */
             transform-origin: bottom; 
+            
+            /* Le JS appliquera ici les transformations (saut + offset) */
         }
 
-        /* --- Interface (Joystick & Bouton Sauter) --- */
+        /* Le "dessus" du cylindre (le chapeau) */
+        .character::before {
+            content: '';
+            position: absolute;
+            width: 100%; 
+            height: 25px; /* Diamètre de 25px */
+            background-color: #ff7040; 
+            border-radius: 50%;
+            top: 0;
+            left: 0;
+            
+            /* Met le cercle à plat et le positionne en haut du corps */
+            transform: rotateX(90deg) translateY(-12.5px);
+        }
+
+
+        /* --- 4. Interface Joystick & Saut --- */
         #joystick-container {
             width: 120px;
             height: 120px;
@@ -115,7 +116,6 @@
             transform: translate(0px, 0px);
         }
 
-        /* NOUVEAU : Bouton Sauter */
         #jump-button {
             width: 80px;
             height: 80px;
@@ -125,8 +125,6 @@
             bottom: 50px;
             right: 50px;
             user-select: none;
-            
-            /* Centrer le texte "SAUT" */
             display: grid;
             place-items: center;
             font-weight: bold;
@@ -136,7 +134,6 @@
         #jump-button:active {
             background-color: rgba(40, 180, 99, 1.0);
         }
-
     </style>
 </head>
 <body>
@@ -150,7 +147,6 @@
     <div id="joystick-container">
         <div id="joystick-thumb"></div>
     </div>
-    
     <div id="jump-button">SAUT</div>
 
 
@@ -159,34 +155,38 @@
         const player = document.getElementById('player');
         const joystick = document.getElementById('joystick-container');
         const thumb = document.getElementById('joystick-thumb');
-        const jumpButton = document.getElementById('jump-button'); // NOUVEAU
+        const jumpButton = document.getElementById('jump-button');
 
         // --- État du personnage ---
-        let playerX = 50; // %
-        let playerZ = 50; // %
-        const playerSpeed = 0.5; // Vitesse de déplacement (réduite pour la grande map)
+        let playerX = 50; // % position (Axe X)
+        let playerZ = 50; // % position (Axe Z, géré par 'top')
+        const playerSpeed = 0.5; // Vitesse de déplacement
 
-        // NOUVEAU : Physique du saut
+        // --- Physique du saut (Axe Y) ---
         let playerY_pixels = 0;  // Hauteur en pixels (0 = au sol)
         let velocityY = 0;       // Vélocité verticale
         let isJumping = false;
-        const gravity = -1;      // Force de gravité (tire vers le bas)
+        const gravity = -1;      // Force de gravité
         const jumpStrength = 15; // Puissance du saut
-        const playerHeightOffset = -20; // (la moitié de la hauteur du cylindre)
+        const playerHeightOffset = -20; // Offset vertical pour centrer le cylindre (moitié de sa hauteur 40px)
 
         // --- État du Joystick ---
         let isDragging = false;
         let joystickOriginX = 0;
         let joystickOriginY = 0;
-        let moveX = 0;
-        let moveZ = 0;
+        let moveX = 0; // Direction X
+        let moveZ = 0; // Direction Z
         const joystickRadius = joystick.offsetWidth / 2;
 
-        // --- Fonctions Joystick (inchangées) ---
+        // --- Fonctions Joystick (gestion tactile/souris) ---
+        function getTouch(event) {
+            return event.changedTouches ? event.changedTouches[0] : event;
+        }
+
         function startDrag(event) {
             isDragging = true;
             event.preventDefault(); 
-            const touch = event.changedTouches ? event.changedTouches[0] : event;
+            const touch = getTouch(event);
             joystickOriginX = touch.clientX;
             joystickOriginY = touch.clientY;
         }
@@ -202,47 +202,49 @@
         function moveDrag(event) {
             if (!isDragging) return;
             event.preventDefault();
-            const touch = event.changedTouches ? event.changedTouches[0] : event;
+            const touch = getTouch(event);
+            
             let deltaX = touch.clientX - joystickOriginX;
             let deltaY = touch.clientY - joystickOriginY;
+
+            // Limite le mouvement au rayon du joystick
             const distance = Math.min(joystickRadius, Math.hypot(deltaX, deltaY));
             const angle = Math.atan2(deltaY, deltaX);
+
             deltaX = distance * Math.cos(angle);
             deltaY = distance * Math.sin(angle);
+
             thumb.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
             moveX = deltaX / joystickRadius;
             moveZ = deltaY / joystickRadius;
         }
 
-        // --- NOUVEAU : Fonction de Saut ---
+        // --- Fonction de Saut ---
         function startJump(event) {
-            event.preventDefault(); // Empêche le "zoom" sur mobile
+            event.preventDefault();
             if (!isJumping) {
                 isJumping = true;
                 velocityY = jumpStrength;
             }
         }
 
-        // --- La "Boucle de Jeu" (Mise à jour) ---
+        // --- La "Boucle de Jeu" (Gère le déplacement XZ et le saut Y simultanément) ---
         function gameLoop() {
             
-            // 1. Mouvement X-Z (Joystick)
+            // 1. Mouvement X-Z (Déplacement)
             if (isDragging) {
                 playerX += moveX * playerSpeed;
                 playerZ += moveZ * playerSpeed;
 
-                // Nouvelles limites (plateforme 1000px, perso 25px/40px)
-                // (25px / 1000px) * 100 = 2.5% -> limite = 97.5
-                // (40px / 1000px) * 100 = 4%   -> limite = 96
+                // Limites de la plateforme (1000px, perso 25px/40px)
                 playerX = Math.max(0, Math.min(97.5, playerX));
                 playerZ = Math.max(0, Math.min(96, playerZ));
             }
             
             // 2. Mouvement Y (Saut & Gravité)
             if (isJumping) {
-                // Applique la vélocité (monte)
                 playerY_pixels += velocityY;
-                // Applique la gravité (ralentit et redescend)
                 velocityY += gravity; 
             }
 
@@ -255,18 +257,16 @@
 
             // 4. Appliquer TOUTES les transformations au CSS
             
-            // Applique la position X et Z
+            // Applique la position X et Z (le cylindre se déplace sur le plan)
             player.style.left = playerX + '%';
             player.style.top = playerZ + '%';
             
-            /* * Applique la position Y (saut)
-             * On utilise translateZ() car la plateforme est tournée de 90deg.
-             * Son axe Z local correspond à l'axe Y (haut/bas) du monde.
-             * On utilise -playerY_pixels car l'axe Z local pointe "vers le bas" (monde -Y).
+            /* Applique la position Y (le saut)
+             * translateY(-20px) : l'offset de base (lifting le cylindre)
+             * translateZ(${-playerY_pixels}px) : le saut.
+             * (translateZ est utilisé car l'axe Z local du plan tourne pour devenir l'axe Y du monde)
              */
-            
             player.style.transform = `translateY(${playerHeightOffset}px) translateZ(${-playerY_pixels}px)`;
-
             
             // Rappel de la boucle
             requestAnimationFrame(gameLoop);
@@ -284,7 +284,7 @@
         document.addEventListener('mouseup', stopDrag);
         document.addEventListener('mousemove', moveDrag);
 
-        // NOUVEAU : Bouton Sauter (Mobile & Souris)
+        // Bouton Sauter (Mobile & Souris)
         jumpButton.addEventListener('touchstart', startJump, { passive: false });
         jumpButton.addEventListener('mousedown', startJump);
 
