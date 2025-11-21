@@ -3,49 +3,358 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ouvreur de Liens</title>
+    <title>Paper.io Solo 🟩</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
-        button { padding: 15px 30px; font-size: 1.2em; cursor: pointer; background-color: #2a9d8f; color: white; border: none; border-radius: 5px; }
-        button:hover { background-color: #264653; }
-        #lien-input { padding: 10px; font-size: 1em; width: 80%; max-width: 400px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px;}
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            border: 5px solid #2a9d8f;
+            background-color: #eee;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            touch-action: none; /* Empêche le zoom/défilement sur mobile */
+        }
+
+        #score-panel {
+            margin-top: 15px;
+            font-size: 1.2em;
+            color: #333;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            width: 300px;
+            text-align: center;
+        }
+
+        #controls {
+            margin-top: 15px;
+            text-align: center;
+            color: #555;
+        }
+
+        /* Styles pour les boutons de contrôle sur mobile */
+        #mobile-controls {
+            display: none; /* Caché par défaut, affiché en JS si mobile */
+            margin-top: 20px;
+            width: 300px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        .control-button {
+            padding: 15px 25px;
+            margin: 5px;
+            background-color: #e76f51;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            user-select: none;
+            flex: 1;
+        }
+        
+        .control-button:active {
+            background-color: #f4a261;
+        }
+        
+        #up-btn, #down-btn {
+            width: 100px; /* Aligner les boutons haut/bas */
+        }
     </style>
 </head>
 <body>
 
-    <h1>Ouvrir plusieurs liens</h1>
-    <p>
-        Pour des raisons de sécurité du navigateur, vous devez cliquer sur le bouton ci-dessous pour lancer l'ouverture des pages.
-    </p>
+    <h1>Paper.io Solo 🎮</h1>
 
-    <input type="text" id="lien-input" placeholder="Entrez votre URL ici (ex: https://google.com)">
+    <canvas id="game-canvas" width="600" height="400"></canvas>
+
+    <div id="score-panel">
+        Territoire capturé : <span id="area-score">0</span>%
+    </div>
     
-    <button onclick="ouvrirMultiplesFenetres()">
-        Ouvrir 5 pages web
-    </button>
+    <div id="controls">
+        Utilisez les **touches fléchées** pour vous déplacer.
+    </div>
+
+    <div id="mobile-controls">
+        <div class="control-row">
+            <button id="up-btn" class="control-button">▲</button>
+        </div>
+        <div class="control-row">
+            <button id="left-btn" class="control-button">◀</button>
+            <button id="right-btn" class="control-button">▶</button>
+        </div>
+        <div class="control-row">
+            <button id="down-btn" class="control-button">▼</button>
+        </div>
+    </div>
     
     <script>
-        function ouvrirMultiplesFenetres() {
-            const urlBase = document.getElementById('lien-input').value;
-            
-            if (!urlBase || !urlBase.startsWith('http')) {
-                alert("Veuillez entrer un lien valide commençant par http:// ou https://");
+        // --- CONFIGURATION DU JEU ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const WIDTH = canvas.width;
+        const HEIGHT = canvas.height;
+        const TILE_SIZE = 10;
+        const PLAYER_COLOR = '#e76f51';
+        const TRAIL_COLOR = '#f4a261';
+        const BASE_COLOR = '#2a9d8f';
+        const ENEMY_COLOR = '#264653';
+
+        // --- ÉTAT DU JEU ---
+        let player = { x: 5, y: 5, dx: 0, dy: 0, speed: TILE_SIZE };
+        let territory = []; // Représente le territoire du joueur (coordonnées)
+        let trail = [];     // Représente la ligne tracée hors du territoire
+        let isMoving = false;
+        let isDead = false;
+        let territoryArea = 0; // Zone capturée
+
+        // Initialisation de la grille (le monde)
+        const gridCols = WIDTH / TILE_SIZE;
+        const gridRows = HEIGHT / TILE_SIZE;
+
+        // Remplir le territoire initial (coin supérieur gauche)
+        function initializeTerritory() {
+            territory = [];
+            territoryArea = 0;
+            // Remplir 5x5 dans le coin pour le territoire de départ
+            for (let x = 0; x < 5; x++) {
+                for (let y = 0; y < 5; y++) {
+                    territory.push({ x: x, y: y });
+                }
+            }
+        }
+
+        // --- GESTION DES COMMANDES (Clavier et Mobile) ---
+        function setDirection(dx, dy) {
+            // Empêche le joueur de se retourner immédiatement (règle Paper.io)
+            if (player.dx !== -dx || player.dy !== -dy) {
+                player.dx = dx;
+                player.dy = dy;
+                isMoving = true;
+            }
+        }
+
+        // Événements clavier
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                    setDirection(0, -1);
+                    break;
+                case 'ArrowDown':
+                    setDirection(0, 1);
+                    break;
+                case 'ArrowLeft':
+                    setDirection(-1, 0);
+                    break;
+                case 'ArrowRight':
+                    setDirection(1, 0);
+                    break;
+            }
+            e.preventDefault(); // Empêche le défilement de la page
+        });
+        
+        // Événements mobiles
+        document.getElementById('mobile-controls').style.display = 'block'; // Afficher les contrôles
+        document.getElementById('up-btn').addEventListener('click', () => setDirection(0, -1));
+        document.getElementById('down-btn').addEventListener('click', () => setDirection(0, 1));
+        document.getElementById('left-btn').addEventListener('click', () => setDirection(-1, 0));
+        document.getElementById('right-btn').addEventListener('click', () => setDirection(1, 0));
+
+
+        // --- LOGIQUE DE JEU ---
+
+        /** * Vérifie si des coordonnées font partie du territoire.
+         * @returns {boolean}
+         */
+        function isTerritory(x, y) {
+            return territory.some(t => t.x === x && t.y === y);
+        }
+
+        /**
+         * Déplace le joueur et gère la capture/collision.
+         */
+        function movePlayer() {
+            if (!isMoving || isDead) return;
+
+            // Nouvelle position
+            let newX = player.x + player.dx;
+            let newY = player.y + player.dy;
+
+            // 1. Gestion des collisions avec les murs
+            if (newX < 0 || newX >= gridCols || newY < 0 || newY >= gridRows) {
+                isDead = true;
+                alert('Partie terminée ! Collision avec le mur.');
                 return;
             }
 
-            // Nombre de fenêtres à ouvrir (vous pouvez monter jusqu'à 10, mais cela peut être intrusif)
-            const nombreDeFenetres = 5; 
-            
-            for (let i = 0; i < nombreDeFenetres; i++) {
-                // Le navigateur autorise l'ouverture si elle est déclenchée par un clic utilisateur
-                // Utiliser window.open() pour ouvrir un nouvel onglet
-                window.open(urlBase, '_blank'); 
+            // 2. Collision avec sa propre ligne (mort)
+            if (!isTerritory(player.x, player.y) && trail.some(t => t.x === newX && t.y === newY)) {
+                isDead = true;
+                alert('Partie terminée ! Vous avez coupé votre propre ligne.');
+                return;
             }
 
-            // Message pour l'utilisateur
-            alert(`${nombreDeFenetres} pages ont été ouvertes. Si vous ne les voyez pas, vérifiez si votre navigateur a bloqué des pop-ups.`);
-        }
-    </script>
+            player.x = newX;
+            player.y = newY;
 
+            // 3. Gestion du tracé de ligne (hors territoire)
+            if (!isTerritory(player.x, player.y)) {
+                // Ajouter le point au tracé si ce n'est pas déjà le dernier
+                const lastTrail = trail[trail.length - 1];
+                if (!lastTrail || lastTrail.x !== player.x || lastTrail.y !== player.y) {
+                    trail.push({ x: player.x, y: player.y });
+                }
+            } 
+            // 4. Gestion de la capture (Retour au territoire)
+            else if (isTerritory(player.x, player.y) && trail.length > 0) {
+                captureTerritory();
+                trail = []; // Vider la ligne
+            }
+        }
+        
+        /**
+         * Implémentation du remplissage de zone (Flood Fill/BFS simplifié).
+         */
+        function captureTerritory() {
+            // Trouver la zone vide à l'intérieur du tracé
+            // NOTE : C'est la partie la plus complexe d'un jeu .io.
+            // Nous utilisons ici une simplification : chercher le premier point
+            // non-territoire adjacent au tracé et l'utiliser comme point de départ
+            // pour le remplissage (l'algo 'Flood Fill').
+            
+            const filledTiles = [];
+            
+            // On considère que toutes les cases non-territoire, mais qui ne font pas partie 
+            // du tracé sont celles à capturer. Pour simplifier, on ne gère pas les "trous" ici.
+            
+            // Algorithme de remplissage (très simplifié) :
+            // Trouver le point de départ extérieur au territoire.
+            
+            // Pour le solo, on va simplement utiliser le tracé pour créer un polygone
+            // et remplir les points qui sont 'dedans' mais pas encore dans le territoire.
+
+            let minX = Math.min(...trail.map(t => t.x), player.x);
+            let maxX = Math.max(...trail.map(t => t.x), player.x);
+            let minY = Math.min(...trail.map(t => t.y), player.y);
+            let maxY = Math.max(...trail.map(t => t.y), player.y);
+            
+            // Parcourir le rectangle englobant le tracé
+            for (let x = minX; x <= maxX; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    // Si la case n'est pas encore capturée ET qu'elle n'est pas le point courant du tracé
+                    if (!isTerritory(x, y)) {
+                        filledTiles.push({ x: x, y: y });
+                    }
+                }
+            }
+            
+            // Filtrer les tuiles qui étaient déjà dans le tracé (elles sont déjà gérées)
+            const newTerritory = filledTiles.filter(tile => !trail.some(t => t.x === tile.x && t.y === tile.y));
+
+            // Ajouter les nouvelles tuiles au territoire
+            territory.push(...newTerritory);
+            
+            // Mettre à jour le score
+            updateScore();
+        }
+
+        /**
+         * Calcule et affiche le pourcentage de territoire capturé.
+         */
+        function updateScore() {
+            territoryArea = territory.length;
+            const totalArea = gridCols * gridRows;
+            const percent = (territoryArea / totalArea) * 100;
+            document.getElementById('area-score').textContent = percent.toFixed(2);
+        }
+
+        // --- FONCTIONS DE DESSIN (RENDU) ---
+
+        function draw() {
+            // 1. Nettoyer l'écran
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+            // 2. Dessiner le territoire
+            ctx.fillStyle = BASE_COLOR;
+            territory.forEach(t => {
+                ctx.fillRect(t.x * TILE_SIZE, t.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            });
+
+            // 3. Dessiner la ligne (le tracé)
+            ctx.fillStyle = TRAIL_COLOR;
+            trail.forEach(t => {
+                ctx.fillRect(t.x * TILE_SIZE, t.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            });
+
+            // 4. Dessiner le joueur
+            ctx.fillStyle = PLAYER_COLOR;
+            ctx.beginPath();
+            // Dessiner un cercle pour le joueur
+            ctx.arc(
+                player.x * TILE_SIZE + TILE_SIZE / 2, 
+                player.y * TILE_SIZE + TILE_SIZE / 2, 
+                TILE_SIZE / 2, 
+                0, 
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        // --- BOUCLE DE JEU PRINCIPALE ---
+        let lastUpdateTime = 0;
+        const gameTick = 100; // Mouvement toutes les 100 millisecondes (10 cases/seconde)
+
+        function gameLoop(timestamp) {
+            if (isDead) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER !', WIDTH / 2, HEIGHT / 2);
+                return; // Arrêter la boucle
+            }
+            
+            // Mise à jour de la logique à intervalles fixes
+            if (timestamp - lastUpdateTime > gameTick) {
+                movePlayer();
+                lastUpdateTime = timestamp;
+            }
+            
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- INITIALISATION ---
+        function init() {
+            initializeTerritory();
+            updateScore();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = init;
+    </script>
 </body>
 </html>
