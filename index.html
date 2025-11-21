@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Jeu 3D - Plateforme XZ avec Cylindre (Corrigé)</title>
+    <title>Jeu 3D - Plateforme XZ avec Cylindre (Final)</title>
     <style>
         /* --- Styles Généraux --- */
         body {
@@ -26,7 +26,6 @@
             perspective: 1200px;
             transform-style: preserve-3d;
             transform: rotateX(-25deg); 
-            /* Fixe un point de perspective pour éviter les conflits Z */
             transform-origin: center; 
         }
 
@@ -49,7 +48,6 @@
             margin-top: -500px; 
             position: relative; 
             
-            /* S'assure que la plateforme est en dessous du personnage */
             z-index: 1; 
         }
 
@@ -66,16 +64,8 @@
             top: 50%; 
             
             transform-style: preserve-3d;
-            
-            /* ESSENTIEL : Positionne le centre de la transformation sur le milieu du corps */
             transform-origin: center center; 
             
-            /* * Correction: Le JS va appliquer le transform complet.
-             * Nous n'avons plus besoin du hack translateY dans le CSS.
-             */
-             transform: translateZ(0px); 
-
-            /* S'assure que le personnage est au-dessus du plan */
             z-index: 10; 
         }
 
@@ -90,7 +80,6 @@
             top: 0;
             left: 0;
             
-            /* IMPORTANT : Rotation et décalage pour le positionner au-dessus du corps */
             transform: rotateX(90deg) translateY(-12.5px);
         }
 
@@ -153,41 +142,39 @@
         const jumpButton = document.getElementById('jump-button');
 
         // --- État du personnage ---
-        let playerX = 50; // % position (Axe X)
-        let playerZ = 50; // % position (Axe Z, géré par 'top')
+        let playerX = 50;
+        let playerZ = 50;
         const playerSpeed = 0.5;
 
         // --- Physique du saut (Axe Y) ---
-        let playerY_pixels = 0; // Hauteur en pixels (0 = au sol)
+        let playerY_pixels = 0;
         let velocityY = 0;
         let isJumping = false;
         const gravity = -1;
         const jumpStrength = 15;
-        
-        /* Correction: Le cylindre fait 40px de haut. Pour que son centre (transform-origin) 
-         * soit sur la ligne du sol, on doit le décaler vers le haut de 20px (sa demi-hauteur).
-         * Nous n'utilisons plus le hack translateY; on utilise uniquement translateZ pour le lift. 
-         */
         const playerBottomOnGroundOffset = 20; 
 
         // --- Contrôles (Joystick & Clavier) ---
         let isDragging = false;
-        let moveX = 0; // (-1 à 1)
-        let moveZ = 0; // (-1 à 1)
+        let moveX = 0;
+        let moveZ = 0;
         const joystickRadius = joystick.offsetWidth / 2;
-        const keysPressed = {}; // Pour gérer le clavier
+        const keysPressed = {};
 
-        // --- Fonctions Joystick (gestion tactile/souris) ---
+        // --- Fonctions Joystick ---
         function getTouch(event) {
             return event.changedTouches ? event.changedTouches[0] : event;
         }
+
+        // On utilise un objet temporaire pour stocker l'origine du drag
+        const dragData = { joystickOriginX: 0, joystickOriginY: 0 }; 
 
         function startDrag(event) {
             isDragging = true;
             event.preventDefault(); 
             const touch = getTouch(event);
-            this.joystickOriginX = touch.clientX; // Utiliser 'this' pour le contexte local
-            this.joystickOriginY = touch.clientY;
+            dragData.joystickOriginX = touch.clientX; 
+            dragData.joystickOriginY = touch.clientY;
         }
 
         function stopDrag() {
@@ -203,8 +190,8 @@
             event.preventDefault();
             const touch = getTouch(event);
             
-            let deltaX = touch.clientX - event.currentTarget.joystickOriginX; // Correction: utiliser l'origine stockée
-            let deltaY = touch.clientY - event.currentTarget.joystickOriginY;
+            let deltaX = touch.clientX - dragData.joystickOriginX;
+            let deltaY = touch.clientY - dragData.joystickOriginY;
 
             const distance = Math.min(joystickRadius, Math.hypot(deltaX, deltaY));
             const angle = Math.atan2(deltaY, deltaX);
@@ -229,25 +216,24 @@
             updateKeyboardMovement();
         }
         
-        // Mappe les touches clavier au mouvement XZ
         function updateKeyboardMovement() {
             let keyboardMoveX = 0;
             let keyboardMoveZ = 0;
 
-            if (keysPressed['q'] || keysPressed['a']) { keyboardMoveX = -1; } // Gauche
-            else if (keysPressed['d']) { keyboardMoveX = 1; } // Droite
+            if (keysPressed['q'] || keysPressed['a']) { keyboardMoveX = -1; }
+            else if (keysPressed['d']) { keyboardMoveX = 1; }
 
-            if (keysPressed['z'] || keysPressed['w']) { keyboardMoveZ = -1; } // Haut (Avant)
-            else if (keysPressed['s']) { keyboardMoveZ = 1; } // Bas (Arrière)
+            if (keysPressed['z'] || keysPressed['w']) { keyboardMoveZ = -1; }
+            else if (keysPressed['s']) { keyboardMoveZ = 1; }
 
-            // On utilise le joystick si il est actif, sinon on utilise le clavier
+            // Le joystick a priorité, sinon on utilise le clavier
             if (!isDragging) {
                 moveX = keyboardMoveX;
                 moveZ = keyboardMoveZ;
             }
             
-            // Le saut peut être déclenché par le clavier
-            if (keysPressed[' '] && !isJumping) { // Espace
+            // Le saut par clavier
+            if (keysPressed[' '] && !isJumping) {
                  startJump({preventDefault: () => {}}); 
             }
         }
@@ -292,10 +278,7 @@
             player.style.left = playerX + '%';
             player.style.top = playerZ + '%';
             
-            /* FIX CRUCIAL : On utilise uniquement translateZ pour le lift et le saut.
-             * playerBottomOnGroundOffset (20px) soulève la base du cylindre sur la ligne du sol.
-             * playerY_pixels s'ajoute pour le saut.
-             */
+            // Applique le lift statique (pour le poser au sol) + le saut dynamique
             player.style.transform = `translateZ(${playerBottomOnGroundOffset + playerY_pixels}px)`;
             
             requestAnimationFrame(gameLoop);
@@ -303,7 +286,7 @@
 
         // --- Attacher les écouteurs d'événements ---
         
-        // Joystick
+        // Joystick (Gestion des données de drag plus fiable)
         joystick.addEventListener('touchstart', startDrag, { passive: false });
         document.addEventListener('touchend', stopDrag);
         document.addEventListener('touchmove', moveDrag, { passive: false });
@@ -315,7 +298,7 @@
         jumpButton.addEventListener('touchstart', startJump, { passive: false });
         jumpButton.addEventListener('mousedown', startJump);
         
-        // Clavier (NOUVEAU)
+        // Clavier
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('keyup', handleKeyUp);
 
