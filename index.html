@@ -2,344 +2,76 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Contrôleur FPS Mobile 3D</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateforme 3D (X-Z)</title>
     <style>
-        /* --- 1. Le CSS (Style) --- */
-        
-        body, html {
-            margin: 0; padding: 0;
-            width: 100vw; height: 100vh;
-            overflow: hidden;
-            background-color: #111;
+        /* Style de base pour la page (centrer la scène) */
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background-color: #f0f0f0;
+            font-family: sans-serif;
         }
 
-        #game-container {
-            position: relative;
-            width: 100%; height: 100%;
-            overflow: hidden;
+        /* 1. La "Scène" : notre conteneur 3D */
+        .scene {
+            width: 300px;
+            height: 300px;
+            border: 1px dashed #999;
+            
+            /* Crée un espace 3D avec de la profondeur */
             perspective: 800px; 
-            background: linear-gradient(to bottom, #87CEEB 0%, #B0E0E6 70%);
+            
+            /* Indique que les enfants doivent être positionnés en 3D */
+            transform-style: preserve-3d; 
+            
+            /* Une légère rotation pour mieux voir l'effet 3D */
+            transform: rotateX(-30deg) rotateY(30deg);
         }
 
-        #world {
-            position: absolute;
-            width: 100%; height: 100%;
-            transform-style: preserve-3d;
+        /* 2. La "Plateforme" : notre élément sur l'axe X-Z */
+        .platform {
+            width: 100%; /* Axe X */
+            height: 100%; /* Sera l'axe Z après rotation */
+            
+            background-color: rgba(0, 150, 255, 0.7);
+            border: 2px solid #0056b3;
+            box-sizing: border-box; /* Pour que la bordure ne change pas la taille */
+
+            /* * C'EST LA PARTIE LA PLUS IMPORTANTE :
+             * Par défaut, un <div> est à plat sur l'écran (axes X et Y).
+             * En le tournant de 90 degrés autour de l'axe X,
+             * on le "bascule" pour qu'il soit à plat sur le "sol" (axes X et Z).
+             */
+            transform: rotateX(90deg); 
+            
+            /* On centre l'élément pour qu'il tourne sur lui-même */
+            margin: 0; 
         }
 
-        #ground {
+        /* Un petit texte pour indiquer les axes */
+        .platform::before {
+            content: "Plateforme (Axe X-Z)";
+            color: #fff;
+            font-weight: bold;
             position: absolute;
-            width: 4000px; height: 4000px;
-            left: 50%; top: 50%;
-            transform: translate(-50%, -50%) rotateX(90deg);
-            background-size: 100px 100px;
-            background-image:
-                linear-gradient(to right, #666 1px, transparent 1px),
-                linear-gradient(to bottom, #666 1px, transparent 1px);
-            background-color: #4a7c4a;
+            top: 50%;
+            left: 50%;
+            /* Annule la rotation du parent pour que le texte soit lisible */
+            transform: translate(-50%, -50%) rotateX(-90deg); 
         }
-        
-        .wall {
-            position: absolute;
-            width: 200px;
-            height: 300px; /* Hauteur du mur */
-            background-color: #8B4513;
-            border: 4px solid #5a2d0c;
-            transform-origin: 50% 50%;
-        }
-        /* Les transformations CSS positionnent les murs visuellement */
-        #wall-1 { transform: translate3d(-200px, 0, 500px); }
-        #wall-2 { transform: translate3d(200px, 0, 500px); }
-        #wall-3 { transform: translate3d(0, 0, 1000px) rotateY(90deg); background-color: #b03a2e; }
-        #wall-4 { transform: translate3d(-500px, 0, 800px) rotateY(90deg); background-color: #2e86c1; }
 
-        /* --- UI (inchangée) --- */
-        #joystick-container {
-            position: absolute;
-            bottom: 40px; left: 40px;
-            width: 150px; height: 150px;
-            background-color: rgba(128, 128, 128, 0.4);
-            border-radius: 50%;
-            z-index: 10;
-        }
-        #joystick-knob {
-            position: absolute;
-            width: 70px; height: 70px;
-            background-color: rgba(255, 255, 255, 0.7);
-            border-radius: 50%;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            user-select: none; -webkit-user-select: none;
-        }
-        #jump-button {
-            position: absolute;
-            bottom: 40px; right: 40px;
-            width: 100px; height: 100px;
-            background-color: rgba(60, 200, 60, 0.7);
-            border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.5);
-            display: flex;
-            justify-content: center; align-items: center;
-            font-size: 40px; color: white;
-            user-select: none; -webkit-user-select: none;
-            z-index: 10;
-        }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <div id="world">
-            <div id="ground"></div>
-            <div class="wall" id="wall-1"></div>
-            <div class="wall" id="wall-2"></div>
-            <div class="wall" id="wall-3"></div>
-            <div class="wall" id="wall-4"></div>
-        </div>
+    <h1>Scène 3D avec Plateforme X-Z</h1>
+
+    <div class="scene">
+        <div class="platform"></div>
     </div>
 
-    <div id="joystick-container">
-        <div id="joystick-knob"></div>
-    </div>
-    <div id="jump-button">⬆️</div>
-
-
-    <script>
-        // --- 3. Le JavaScript (Logique) ---
-
-        // Éléments du DOM
-        const gameContainer = document.getElementById('game-container');
-        const world = document.getElementById('world');
-        const joystickContainer = document.getElementById('joystick-container');
-        const jumpButton = document.getElementById('jump-button');
-
-        // --- NOUVEAU : Définition du joueur et de la physique ---
-        const playerHeight = 100; // Hauteur des "yeux" du joueur
-        const playerRadius = 20;  // "Largeur" du joueur pour les collisions
-        let playerY = playerHeight; // Position verticale actuelle
-        let jumpVelocity = 0;
-        const gravity = 0.8;      // Force de la gravité (plus faible que 1 pour un saut plus "flottant")
-        let onGround = false;       // Le joueur est-il sur le sol ?
-        
-        // Position du monde (X et Z)
-        let worldX = 0;
-        let worldZ = 0;
-        
-        // Vitesse de déplacement
-        const playerSpeed = 4;
-
-        // Variables du Joystick
-        let joystickActive = false;
-        let moveX = 0, moveY = 0;
-
-        // Variables de la Caméra
-        let isLooking = false;
-        let lastTouchX = 0, lastTouchY = 0;
-        let rotationX = 0, rotationY = 0;
-        const lookSensitivity = 0.2;
-
-        // --- NOUVEAU : Data des Collisions ---
-        // C'est la partie la plus importante.
-        // On définit les "hitbox" de nos murs en JavaScript.
-        // Les coordonnées (x, z) sont le *centre* du mur,
-        // (w, d) sont la largeur (width) et la profondeur (depth).
-        const wallThickness = 20; // Épaisseur par défaut d'un mur
-        const walls = [
-            { // wall-1 (non-tourné)
-                x: -200, z: 500,
-                w: 200, d: wallThickness,
-                h: 300 // Hauteur
-            },
-            { // wall-2 (non-tourné)
-                x: 200, z: 500,
-                w: 200, d: wallThickness,
-                h: 300
-            },
-            { // wall-3 (tourné de 90 deg)
-                x: 0, z: 1000,
-                w: wallThickness, d: 200, // La largeur (200) devient la profondeur
-                h: 300
-            },
-            { // wall-4 (tourné de 90 deg)
-                x: -500, z: 800,
-                w: wallThickness, d: 200,
-                h: 300
-            }
-        ];
-
-
-        // --- Gestion des Événements (Touch) ---
-        // (Identique à la version précédente, mais simplifiée)
-
-        joystickContainer.addEventListener('touchstart', (e) => {
-            e.preventDefault(); 
-            joystickActive = true;
-            // Calcule le centre une seule fois
-            const rect = joystickContainer.getBoundingClientRect();
-            joystickContainer.centerX = rect.left + rect.width / 2;
-            joystickContainer.centerY = rect.top + rect.height / 2;
-            joystickContainer.maxDistance = joystickContainer.clientWidth / 2;
-        });
-        
-        jumpButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            startJump();
-        });
-
-        gameContainer.addEventListener('touchstart', (e) => {
-            if (joystickContainer.contains(e.target) || jumpButton.contains(e.target)) {
-                return;
-            }
-            e.preventDefault();
-            isLooking = true;
-            const touch = e.touches[0];
-            lastTouchX = touch.clientX;
-            lastTouchY = touch.clientY;
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            if (!e.touches[0]) return;
-            const touch = e.touches[0];
-
-            if (joystickActive) {
-                let deltaX = touch.clientX - joystickContainer.centerX;
-                let deltaY = touch.clientY - joystickContainer.centerY;
-                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-                if (distance > joystickContainer.maxDistance) {
-                    deltaX = (deltaX / distance) * joystickContainer.maxDistance;
-                    deltaY = (deltaY / distance) * joystickContainer.maxDistance;
-                }
-                joystickKnob.style.transform = `translate(-50%, -50%) translate(${deltaX}px, ${deltaY}px)`;
-                moveX = deltaX / joystickContainer.maxDistance;
-                moveY = deltaY / joystickContainer.maxDistance;
-            
-            } else if (isLooking) {
-                const deltaX = touch.clientX - lastTouchX;
-                const deltaY = touch.clientY - lastTouchY;
-                
-                rotationY -= deltaX * lookSensitivity;
-                rotationX += deltaY * lookSensitivity;
-                rotationX = Math.max(-90, Math.min(90, rotationX)); // Limite haut/bas
-                
-                lastTouchX = touch.clientX;
-                lastTouchY = touch.clientY;
-            }
-        });
-
-        window.addEventListener('touchend', (e) => {
-            if (joystickActive) {
-                joystickActive = false;
-                joystickKnob.style.transform = 'translate(-50%, -50%)';
-                moveX = 0; moveY = 0;
-            }
-            if (isLooking) {
-                isLooking = false;
-            }
-        });
-        
-        // --- MODIFIÉ : Logique de Saut ---
-        function startJump() {
-            if (onGround) { // On ne peut sauter que si on est au sol
-                jumpVelocity = 18; // Donne une impulsion vers le haut
-                onGround = false;
-            }
-        }
-        
-        // --- Boucle de jeu (Game Loop) MISE À JOUR ---
-
-        function gameLoop() {
-            
-            // 1. Appliquer la gravité (constamment)
-            // On n'est plus "en saut" (isJumping), on est juste "en l'air" (onGround = false)
-            if (!onGround) {
-                playerY += jumpVelocity; // Applique la vitesse (montée ou descente)
-                jumpVelocity -= gravity; // La gravité réduit la vitesse
-            }
-
-            // 2. Vérifier la collision avec le sol
-            // (Ici on pourrait ajouter des plateformes)
-            let currentFloorHeight = playerHeight; // Hauteur du sol (Y=0) + hauteur du joueur
-            
-            if (playerY <= currentFloorHeight) {
-                playerY = currentFloorHeight;
-                jumpVelocity = 0;
-                onGround = true;
-            } else {
-                onGround = false;
-            }
-
-            // 3. Gérer le déplacement (Joystick)
-            const zMove = moveY * playerSpeed;
-            const xMove = moveX * playerSpeed;
-            
-            const angle = rotationY * (Math.PI / 180);
-            const cosAngle = Math.cos(angle);
-            const sinAngle = Math.sin(angle);
-            
-            // Calcule la position *voulue*
-            let nextWorldX = worldX + (zMove * sinAngle + xMove * cosAngle);
-            let nextWorldZ = worldZ + (zMove * cosAngle - xMove * sinAngle);
-
-            // 4. --- NOUVEAU : Vérifier les collisions MURALES (X/Z) ---
-            
-            let canMoveX = true;
-            let canMoveZ = true;
-
-            for (const wall of walls) {
-                // Calcule les bords de la hitbox du mur
-                const wall_x_min = wall.x - wall.w / 2;
-                const wall_x_max = wall.x + wall.w / 2;
-                const wall_z_min = wall.z - wall.d / 2;
-                const wall_z_max = wall.z + wall.d / 2;
-                
-                // On vérifie seulement si on est à la bonne hauteur pour heurter le mur
-                if (playerY < wall.h) { 
-                
-                    // Vérification pour le mouvement X
-                    if (
-                        (nextWorldX + playerRadius > wall_x_min) &&
-                        (nextWorldX - playerRadius < wall_x_max) &&
-                        (worldZ + playerRadius > wall_z_min) && // On utilise la position Z *actuelle*
-                        (worldZ - playerRadius < wall_z_max)
-                    ) {
-                        canMoveX = false;
-                    }
-                    
-                    // Vérification pour le mouvement Z
-                    if (
-                        (worldX + playerRadius > wall_x_min) && // On utilise la position X *actuelle*
-                        (worldX - playerRadius < wall_x_max) &&
-                        (nextWorldZ + playerRadius > wall_z_min) && 
-                        (nextWorldZ - playerRadius < wall_z_max)
-                    ) {
-                        canMoveZ = false;
-                    }
-                }
-            }
-
-            // 5. Appliquer le mouvement SEULEMENT si c'est possible
-            if (canMoveX) {
-                worldX = nextWorldX;
-            }
-            if (canMoveZ) {
-                worldZ = nextWorldZ;
-            }
-
-            // 6. Mettre à jour la transformation 3D du monde
-            world.style.transform = 
-                `translate3d(${-worldX}px, ${-playerY}px, ${-worldZ}px) ` +
-                `rotateX(${rotationX}deg) ` +
-                `rotateY(${rotationY}deg)`;
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        // Lancer la boucle de jeu
-        gameLoop();
-
-    </script>
 </body>
 </html>
