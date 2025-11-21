@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Jeu 3D - Plateforme XZ avec Cylindre (Final)</title>
+    <title>Jeu 3D - Rotation de Caméra</title>
     <style>
         /* --- Styles Généraux --- */
         body {
@@ -19,13 +19,27 @@
             flex-direction: row; 
         }
 
-        /* --- Scène et Caméra Fixe --- */
-        .scene {
+        /* --- 1. Conteneur principal de la Scène --- */
+        #game-container {
             width: 80vw; 
             height: 70vh;
-            perspective: 1200px;
+            perspective: 1200px; /* Profondeur de champ */
+            overflow: hidden;
+            /* La rotation de la caméra sera appliquée ici */
+            transform-style: preserve-3d; 
+            cursor: grab; /* Curseur de préhension pour la rotation */
+        }
+        #game-container:active {
+            cursor: grabbing;
+        }
+
+        /* --- 2. Le Monde (Déplacé pour suivre le perso) --- */
+        .scene {
+            width: 100%;
+            height: 100%;
             transform-style: preserve-3d;
-            transform: rotateX(-25deg); 
+            /* Le JS déplacera et inclinera la caméra ici */
+            transform: translateZ(-500px) rotateX(-25deg); 
             transform-origin: center; 
         }
 
@@ -47,7 +61,6 @@
             margin-left: -500px; 
             margin-top: -500px; 
             position: relative; 
-            
             z-index: 1; 
         }
 
@@ -84,7 +97,7 @@
         }
 
 
-        /* --- Interface Joystick & Saut --- */
+        /* --- Interface Joystick --- */
         #joystick-container {
             width: 120px; height: 120px;
             background-color: rgba(255, 255, 255, 0.1);
@@ -104,69 +117,68 @@
             transform: translate(0px, 0px);
         }
 
-        #jump-button {
-            width: 80px; height: 80px;
-            background-color: rgba(40, 180, 99, 0.7);
-            border-radius: 50%;
-            position: fixed;
-            bottom: 50px; right: 50px;
-            user-select: none;
-            display: grid; place-items: center;
-            font-weight: bold; font-size: 1.2em;
-            cursor: pointer;
-        }
-        #jump-button:active {
-            background-color: rgba(40, 180, 99, 1.0);
-        }
+        /* --- Éléments supprimés de l'interface --- */
+        /* #jump-button n'existe plus en HTML/JS */
     </style>
 </head>
 <body>
 
-    <div class="scene">
-        <div class="platform">
-            <div class="character" id="player"></div>
+    <div id="game-container">
+        <div class="scene">
+            <div class="platform">
+                <div class="character" id="player"></div>
+            </div>
         </div>
     </div>
 
     <div id="joystick-container">
         <div id="joystick-thumb"></div>
     </div>
-    <div id="jump-button">SAUT</div>
 
 
     <script>
         // --- Références aux éléments ---
         const player = document.getElementById('player');
         const joystick = document.getElementById('joystick-container');
+        const gameContainer = document.getElementById('game-container'); // NOUVEAU
+        const scene = document.querySelector('.scene'); // Le monde 3D
         const thumb = document.getElementById('joystick-thumb');
-        const jumpButton = document.getElementById('jump-button');
 
         // --- État du personnage ---
         let playerX = 50;
         let playerZ = 50;
         const playerSpeed = 0.5;
 
-        // --- Physique du saut (Axe Y) ---
-        let playerY_pixels = 0;
-        let velocityY = 0;
-        let isJumping = false;
-        const gravity = -1;
-        const jumpStrength = 15;
-        const playerBottomOnGroundOffset = 20; 
+        // --- État de la Caméra (NOUVEAU) ---
+        let cameraRotationY = -25; // Rotation initiale Y
+        let cameraPitchX = -25; // Inclinaison initiale X (pour l'effet 3D)
+        let isRotating = false;
 
-        // --- Contrôles (Joystick & Clavier) ---
+        // --- Contrôles (Joystick) ---
         let isDragging = false;
         let moveX = 0;
         let moveZ = 0;
         const joystickRadius = joystick.offsetWidth / 2;
-        const keysPressed = {};
+        
+        // --- Variables de rotation ---
+        let lastX = 0;
+        let lastY = 0;
+        const rotationSpeed = 0.3;
+
+        // --- Suppression du Saut (Variables inutiles) ---
+        // let playerY_pixels = 0;
+        // let velocityY = 0;
+        // let isJumping = false;
+        // const gravity = -1;
+        // const jumpStrength = 15;
+        const playerBottomOnGroundOffset = 20; 
+
 
         // --- Fonctions Joystick ---
         function getTouch(event) {
             return event.changedTouches ? event.changedTouches[0] : event;
         }
 
-        // On utilise un objet temporaire pour stocker l'origine du drag
         const dragData = { joystickOriginX: 0, joystickOriginY: 0 }; 
 
         function startDrag(event) {
@@ -205,47 +217,40 @@
             moveZ = deltaY / joystickRadius;
         }
         
-        // --- Fonctions Clavier ---
-        function handleKeyDown(event) {
-            keysPressed[event.key.toLowerCase()] = true;
-            updateKeyboardMovement();
-        }
+        // --- Fonctions de Rotation de Caméra (NOUVEAU) ---
 
-        function handleKeyUp(event) {
-            delete keysPressed[event.key.toLowerCase()];
-            updateKeyboardMovement();
-        }
-        
-        function updateKeyboardMovement() {
-            let keyboardMoveX = 0;
-            let keyboardMoveZ = 0;
-
-            if (keysPressed['q'] || keysPressed['a']) { keyboardMoveX = -1; }
-            else if (keysPressed['d']) { keyboardMoveX = 1; }
-
-            if (keysPressed['z'] || keysPressed['w']) { keyboardMoveZ = -1; }
-            else if (keysPressed['s']) { keyboardMoveZ = 1; }
-
-            // Le joystick a priorité, sinon on utilise le clavier
-            if (!isDragging) {
-                moveX = keyboardMoveX;
-                moveZ = keyboardMoveZ;
-            }
+        function startRotation(event) {
+            // S'assure de ne pas commencer la rotation si on utilise le joystick
+            if (event.target.id === 'joystick-container' || event.target.id === 'joystick-thumb') return; 
             
-            // Le saut par clavier
-            if (keysPressed[' '] && !isJumping) {
-                 startJump({preventDefault: () => {}}); 
-            }
+            isRotating = true;
+            event.preventDefault(); 
+            const touch = getTouch(event);
+            lastX = touch.clientX;
+            lastY = touch.clientY;
         }
-        
-        // --- Fonction de Saut ---
-        function startJump(event) {
+
+        function stopRotation() {
+            isRotating = false;
+        }
+
+        function moveRotation(event) {
+            if (!isRotating) return;
             event.preventDefault();
-            if (!isJumping) {
-                isJumping = true;
-                velocityY = jumpStrength;
-            }
+            const touch = getTouch(event);
+            
+            const deltaX = touch.clientX - lastX;
+            // Rotation Y (horizontal)
+            cameraRotationY += deltaX * rotationSpeed;
+            
+            const deltaY = touch.clientY - lastY;
+            // Inclinaison X (vertical, optionnel)
+            cameraPitchX = Math.max(-80, Math.min(5, cameraPitchX + deltaY * rotationSpeed));
+
+            lastX = touch.clientX;
+            lastY = touch.clientY;
         }
+
 
         // --- La "Boucle de Jeu" ---
         function gameLoop() {
@@ -259,48 +264,52 @@
                 playerX = Math.max(0, Math.min(97.5, playerX));
                 playerZ = Math.max(0, Math.min(96, playerZ));
             }
-            
-            // 2. Mouvement Y (Saut & Gravité)
-            if (isJumping) {
-                playerY_pixels += velocityY;
-                velocityY += gravity; 
-            }
 
-            // 3. Détection du sol
-            if (playerY_pixels <= 0) {
-                playerY_pixels = 0;
-                velocityY = 0;
-                isJumping = false;
-            }
-
-            // 4. Appliquer TOUTES les transformations
+            // 2. Appliquer les Transformations
             
             player.style.left = playerX + '%';
             player.style.top = playerZ + '%';
             
-            // Applique le lift statique (pour le poser au sol) + le saut dynamique
-            player.style.transform = `translateZ(${playerBottomOnGroundOffset + playerY_pixels}px)`;
+            /* L'axe Y (saut) est retiré, seule la correction de hauteur est appliquée */
+            player.style.transform = `translateZ(${playerBottomOnGroundOffset}px)`;
+            
+            // Appliquer la rotation de la caméra au conteneur principal
+            gameContainer.style.transform = `rotateY(${cameraRotationY}deg) rotateX(${cameraPitchX}deg)`;
+            
+            /* DÉCALAGE DE LA SCÈNE (Suivi du perso)
+             * Le monde entier doit se décaler dans la direction opposée 
+             * du personnage pour le garder au centre. 
+             */
+            const translateX = 500 - (playerX * 10); // Ajusté à 10 pour la map 1000px
+            const translateZ = 500 - (playerZ * 10);
+
+            scene.style.transform = `translateZ(-500px) 
+                                     translateX(${translateX}px) 
+                                     translateY(${translateZ}px) 
+                                     rotateX(-25deg)`; // Garde l'inclinaison de la plateforme
+
             
             requestAnimationFrame(gameLoop);
         }
 
         // --- Attacher les écouteurs d'événements ---
         
-        // Joystick (Gestion des données de drag plus fiable)
+        // Joystick
         joystick.addEventListener('touchstart', startDrag, { passive: false });
         document.addEventListener('touchend', stopDrag);
         document.addEventListener('touchmove', moveDrag, { passive: false });
         joystick.addEventListener('mousedown', startDrag);
         document.addEventListener('mouseup', stopDrag);
         document.addEventListener('mousemove', moveDrag);
-
-        // Bouton Sauter
-        jumpButton.addEventListener('touchstart', startJump, { passive: false });
-        jumpButton.addEventListener('mousedown', startJump);
         
-        // Clavier
-        document.addEventListener('keydown', handleKeyDown);
-        document.addEventListener('keyup', handleKeyUp);
+        // Rotation de Caméra (attachée au document/conteneur)
+        gameContainer.addEventListener('mousedown', startRotation, { passive: false });
+        document.addEventListener('mouseup', stopRotation);
+        document.addEventListener('mousemove', moveRotation, { passive: false });
+        
+        gameContainer.addEventListener('touchstart', startRotation, { passive: false });
+        document.addEventListener('touchend', stopRotation);
+        document.addEventListener('touchmove', moveRotation, { passive: false });
 
         // --- Démarrer la boucle de jeu ---
         gameLoop();
