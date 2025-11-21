@@ -2,255 +2,131 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Journal / Calendrier Interactif 📝</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mon Flux Vidéo Vertical</title>
     <style>
-        /* --- CSS pour le style et l'organisation --- */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* --- CSS pour la mise en page TikTok-like (essentiel) --- */
+        
+        /* Réinitialisation de base */
+        body, html {
             margin: 0;
-            padding: 20px;
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        #app-container {
+            padding: 0;
+            height: 100%;
             width: 100%;
-            max-width: 800px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            padding: 30px;
+            overflow: hidden; /* Empêche le défilement général */
+            background-color: #000; /* Fond noir pour simuler l'application */
+            font-family: Arial, sans-serif;
+            color: white;
         }
 
-        h1 {
-            color: #2a9d8f;
-            text-align: center;
-            margin-bottom: 20px;
+        /* Conteneur principal (le défilement) */
+        #video-feed {
+            width: 100%;
+            height: 100vh; /* 100% de la hauteur de la fenêtre */
+            overflow-y: scroll; /* Permet le défilement vertical */
+            
+            /* LA MAGIE DU SCROLL-SNAP */
+            scroll-snap-type: y mandatory; /* Oblige le scroll à s'arrêter sur les points d'accroche */
         }
 
-        /* --- Section de sélection de date --- */
-        #date-selector {
+        /* Conteneur de chaque vidéo (la "page") */
+        .video-container {
+            width: 100vw; /* 100% de la largeur */
+            height: 100vh; /* 100% de la hauteur */
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 25px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #e9f7f6;
+            background-color: #000;
+            
+            /* Point d'accroche pour le scroll-snap */
+            scroll-snap-align: start; 
         }
 
-        #date-input {
-            padding: 10px;
-            font-size: 1.1em;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin: 0 10px;
-            flex-grow: 1;
-        }
-
-        /* --- Section de l'éditeur de notes (rich text) --- */
-        #editor-container {
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        #toolbar {
-            background-color: #f0f0f0;
-            padding: 8px;
+        /* Style pour les iframes TikTok générées */
+        /* Centre le player dans le conteneur */
+        .tiktok-embed-container {
+            width: 100%; 
+            height: 100%;
+            max-width: 450px; /* Taille typique d'un téléphone */
             display: flex;
-            gap: 5px;
-            border-bottom: 1px solid #ccc;
-        }
-
-        .tool-button {
-            padding: 8px 12px;
-            border: none;
-            background-color: #fff;
-            color: #333;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: bold;
-            transition: background-color 0.2s;
-        }
-
-        .tool-button:hover {
-            background-color: #ddd;
+            justify-content: center;
+            align-items: center;
         }
         
-        /* Boutons spécifiques */
-        #bold-btn { font-weight: 900; }
-        #strike-btn { text-decoration: line-through; }
-
-        #notes-editor {
-            min-height: 250px;
-            padding: 15px;
-            font-size: 1.1em;
-            line-height: 1.6;
-            outline: none;
-            /* Rendre le contenu modifiable */
-            contenteditable="true";
+        /* Petit style de chargement */
+        .loading-text {
+            color: #2a9d8f;
+            font-size: 1.2em;
         }
-        
-        /* Style pour les cases à cocher générées */
-        #notes-editor input[type="checkbox"] {
-            margin-right: 8px;
-            transform: scale(1.2); /* Rendre les cases plus visibles */
-            cursor: pointer;
-        }
-        
-        /* Style pour le texte barré */
-        #notes-editor strike {
-            color: #888;
-        }
-
-        /* --- Bouton de sauvegarde/statut --- */
-        #save-status {
-            text-align: center;
-            padding: 10px;
-            background-color: #d1e7dd;
-            color: #0f5132;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-
     </style>
 </head>
 <body>
 
-<div id="app-container">
-    <h1>🗓️ Mon Journal Quotidien</h1>
-    
-    <div id="date-selector">
-        <label for="date-input">Jour sélectionné :</label>
-        <input type="date" id="date-input">
-    </div>
-
-    <div id="editor-container">
-        <div id="toolbar">
-            <button class="tool-button" id="bold-btn" title="Mettre en gras" onclick="formatText('bold')">B</button>
-            <button class="tool-button" id="strike-btn" title="Barrer le texte" onclick="formatText('strikeThrough')">S</button>
-            <button class="tool-button" id="checkbox-btn" title="Insérer une tâche/case à cocher" onclick="insertCheckbox()">✅ Tâche</button>
+    <div id="video-feed">
         </div>
+
+    <script async src="https://www.tiktok.com/embed.js"></script>
+
+    <script>
+        // --- LIENS TIKTOK EXISTANTS ---
+        // IMPORTANT : Utilisez le lien PARTAGEABLE complet de la vidéo.
+        // Exemple: https://www.tiktok.com/@tiktok/video/7309995831934989601
         
-        <div id="notes-editor" contenteditable="true">
-            Sélectionnez une date pour commencer à écrire vos notes et vos tâches !
-        </div>
-    </div>
-    
-    <div id="save-status">
-        Sauvegarde automatique activée (Local Storage).
-    </div>
-</div>
+        const tiktokLinks = [
+            "https://www.tiktok.com/@tiktok/video/7309995831934989601",
+            "https://www.tiktok.com/@nasa/video/7307682977457782048",
+            "https://www.tiktok.com/@google/video/7306899144806305066",
+            "https://www.tiktok.com/@duolingo/video/7309328221665094955",
+            "https://www.tiktok.com/@therock/video/7310025757962134827"
+            // Ajoutez autant de liens que vous voulez ici
+        ];
 
-<script>
-    // --- VARIABLES GLOBALES ---
-    const dateInput = document.getElementById('date-input');
-    const notesEditor = document.getElementById('notes-editor');
-    const saveStatus = document.getElementById('save-status');
-    
-    let currentDateKey = ''; // Clé de sauvegarde basée sur la date
+        const videoFeed = document.getElementById('video-feed');
 
-    // --- FONCTIONS DE GESTION DE LA DATE ---
+        /** * Génère la structure HTML et le blockquote requis par TikTok 
+         * pour chaque lien, et l'ajoute au flux.
+         */
+        function loadTiktokFeed() {
+            tiktokLinks.forEach(link => {
+                // 1. Créer le conteneur de la "page"
+                const container = document.createElement('div');
+                container.className = 'video-container';
+                
+                // 2. Créer un conteneur pour centrer l'embed
+                const embedWrapper = document.createElement('div');
+                embedWrapper.className = 'tiktok-embed-container';
+                embedWrapper.innerHTML = `<div class="loading-text">Chargement de la vidéo TikTok...</div>`;
 
-    /** Obtient la date du jour au format YYYY-MM-DD et l'applique à l'input. */
-    function setInitialDate() {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0'); // Mois est 0-indexé
-        const dd = String(today.getDate()).padStart(2, '0');
-        
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
-        handleDateChange(); // Charger les notes pour cette date
-    }
-
-    /** Gère le changement de date dans l'input. */
-    function handleDateChange() {
-        // Sauvegarder d'abord les notes de l'ancienne date
-        if (currentDateKey) {
-            saveNotes();
+                // 3. Créer le blockquote TikTok (requis par l'API)
+                const blockquote = document.createElement('blockquote');
+                blockquote.className = 'tiktok-embed';
+                blockquote.cite = link; // Le lien est mis dans l'attribut cite
+                blockquote.setAttribute('data-video-id', link.split('/').pop()); // Le script TikTok le veut
+                blockquote.style.maxWidth = '605px';
+                blockquote.style.minWidth = '325px';
+                
+                // 4. Ajouter le blockquote au wrapper, et le wrapper au container
+                embedWrapper.appendChild(blockquote);
+                container.appendChild(embedWrapper);
+                
+                // 5. Ajouter le tout au flux principal
+                videoFeed.appendChild(container);
+            });
         }
         
-        // Définir la nouvelle clé et charger
-        currentDateKey = `journal_${dateInput.value}`;
-        loadNotes();
-    }
-
-    // --- FONCTIONS DE SAUVEGARDE (Local Storage) ---
-
-    /** Sauvegarde le contenu de l'éditeur pour la date courante. */
-    function saveNotes() {
-        if (!currentDateKey) return;
-        
-        // Sauvegarder le contenu HTML riche
-        localStorage.setItem(currentDateKey, notesEditor.innerHTML);
-        
-        // Afficher le statut de sauvegarde
-        saveStatus.textContent = '✅ Sauvegardé automatiquement !';
-        setTimeout(() => {
-            saveStatus.textContent = 'Sauvegarde automatique activée (Local Storage).';
-        }, 2000);
-    }
-
-    /** Charge le contenu pour la date courante. */
-    function loadNotes() {
-        if (!currentDateKey) return;
-        
-        const savedContent = localStorage.getItem(currentDateKey);
-        
-        if (savedContent) {
-            notesEditor.innerHTML = savedContent;
-        } else {
-            notesEditor.innerHTML = `<em>Écrivez vos notes et tâches pour le ${dateInput.value} ici...</em>`;
-        }
-    }
-
-    // --- FONCTIONS DE FORMATAGE DE TEXTE ---
-
-    /** Applique un formatage au texte sélectionné (gras, barré). */
-    function formatText(command) {
-        // document.execCommand est la méthode standard pour le formatage
-        document.execCommand(command, false, null);
-        notesEditor.focus(); // Remettre le focus sur l'éditeur après l'opération
-        saveNotes(); // Sauvegarder après un changement de format
-    }
-
-    /** Insère un élément de case à cocher. */
-    function insertCheckbox() {
-        // La case à cocher est insérée avec un <br> pour un nouveau paragraphe
-        document.execCommand('insertHTML', false, '<input type="checkbox" onclick="saveNotes()"> Tâche : &nbsp;');
-        notesEditor.focus();
-    }
-    
-    // --- INITIALISATION DU JEU ---
-
-    function initJournal() {
-        // 1. Initialiser la date sur le jour actuel
-        setInitialDate(); 
-        
-        // 2. Écouteurs d'événements
-        dateInput.addEventListener('change', handleDateChange);
-        
-        // 3. Sauvegarde automatique après chaque frappe ou modification
-        notesEditor.addEventListener('input', saveNotes);
-        
-        // 4. Ajouter l'écouteur pour les clics sur les cases à cocher (car ils ne sont pas gérés par 'input')
-        notesEditor.addEventListener('click', (event) => {
-            if (event.target.type === 'checkbox') {
-                saveNotes();
+        // --- INITIALISATION ---
+        window.onload = function() {
+            loadTiktokFeed();
+            
+            // Le script embed.js (chargé dans le head) va détecter 
+            // tous les blockquotes et les transformer en iframes fonctionnelles.
+            // On s'assure qu'il est bien chargé après avoir inséré tous les éléments.
+            if (window.tiktok) {
+                 window.tiktok.all();
             }
-        });
-    }
+        };
 
-    // Démarrer l'application
-    window.onload = initJournal;
-</script>
+    </script>
 
 </body>
 </html>
