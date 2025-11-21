@@ -2,358 +2,254 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Business Clicker 💰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal / Calendrier Interactif 📝</title>
     <style>
-        /* CSS pour l'optimisation mobile et le style */
+        /* --- CSS pour le style et l'organisation --- */
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background-color: #f4f7f6;
             color: #333;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            text-align: center;
         }
 
-        #game-container {
+        #app-container {
             width: 100%;
-            max-width: 450px; /* Taille maximale pour simuler un téléphone */
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            box-sizing: border-box;
+            max-width: 800px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
         }
 
         h1 {
             color: #2a9d8f;
-            margin-bottom: 10px;
-            font-size: 1.8em;
+            text-align: center;
+            margin-bottom: 20px;
         }
 
-        #money-display {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #e76f51;
-            margin: 20px 0;
-            padding: 10px;
-            border: 2px solid #e76f51;
-            border-radius: 8px;
-            background-color: #fff3e0;
-        }
-
-        #click-button {
-            background-color: #2a9d8f;
-            color: white;
-            border: none;
-            padding: 20px 40px;
-            font-size: 1.5em;
-            cursor: pointer;
-            border-radius: 50%;
-            box-shadow: 0 5px #264653;
-            margin-bottom: 30px;
-            transition: transform 0.1s, box-shadow 0.1s;
-            width: 80%;
-            height: 120px;
-        }
-
-        #click-button:active {
-            box-shadow: 0 2px #264653;
-            transform: translateY(3px);
-        }
-
-        #upgrade-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        .upgrade-item {
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            margin-bottom: 10px;
-            padding: 15px;
-            border-radius: 5px;
+        /* --- Section de sélection de date --- */
+        #date-selector {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            text-align: left;
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #e9f7f6;
         }
 
-        .upgrade-item button {
-            background-color: #f4a261;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            cursor: pointer;
+        #date-input {
+            padding: 10px;
+            font-size: 1.1em;
+            border: 1px solid #ccc;
             border-radius: 5px;
+            margin: 0 10px;
+            flex-grow: 1;
+        }
+
+        /* --- Section de l'éditeur de notes (rich text) --- */
+        #editor-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #toolbar {
+            background-color: #f0f0f0;
+            padding: 8px;
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .tool-button {
+            padding: 8px 12px;
+            border: none;
+            background-color: #fff;
+            color: #333;
+            cursor: pointer;
+            border-radius: 4px;
             font-weight: bold;
             transition: background-color 0.2s;
         }
 
-        .upgrade-item button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
+        .tool-button:hover {
+            background-color: #ddd;
         }
+        
+        /* Boutons spécifiques */
+        #bold-btn { font-weight: 900; }
+        #strike-btn { text-decoration: line-through; }
 
-        .upgrade-info {
-            flex-grow: 1;
-        }
-
-        .upgrade-info strong {
-            display: block;
+        #notes-editor {
+            min-height: 250px;
+            padding: 15px;
             font-size: 1.1em;
-            color: #264653;
+            line-height: 1.6;
+            outline: none;
+            /* Rendre le contenu modifiable */
+            contenteditable="true";
         }
         
-        #save-load-buttons {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-        
-        #save-load-buttons button {
-            padding: 10px 15px;
-            margin: 5px;
-            border: none;
-            border-radius: 5px;
+        /* Style pour les cases à cocher générées */
+        #notes-editor input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.2); /* Rendre les cases plus visibles */
             cursor: pointer;
+        }
+        
+        /* Style pour le texte barré */
+        #notes-editor strike {
+            color: #888;
+        }
+
+        /* --- Bouton de sauvegarde/statut --- */
+        #save-status {
+            text-align: center;
+            padding: 10px;
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border-radius: 5px;
             font-weight: bold;
         }
-        
-        #save-button {
-            background-color: #4CAF50;
-            color: white;
-        }
-        
-        #reset-button {
-            background-color: #f44336;
-            color: white;
-        }
+
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <h1>Business Empire 💰</h1>
+<div id="app-container">
+    <h1>🗓️ Mon Journal Quotidien</h1>
     
-    <div id="money-display">$ <span id="money">0.00</span></div>
-    
-    <button id="click-button">
-        Faire un Deal ! <br> (+ $<span id="click-value">1</span>)
-    </button>
-    
-    <div id="per-sec-display">
-        Gains/seconde: $<span id="per-sec">0.00</span>
+    <div id="date-selector">
+        <label for="date-input">Jour sélectionné :</label>
+        <input type="date" id="date-input">
     </div>
 
-    <h2>Améliorations (Business)</h2>
-    <ul id="upgrade-list">
-        </ul>
-    
-    <div id="save-load-buttons">
-        <button id="save-button" onclick="saveGame()">Sauvegarder</button>
-        <button id="reset-button" onclick="resetGame()">Recommencer</button>
+    <div id="editor-container">
+        <div id="toolbar">
+            <button class="tool-button" id="bold-btn" title="Mettre en gras" onclick="formatText('bold')">B</button>
+            <button class="tool-button" id="strike-btn" title="Barrer le texte" onclick="formatText('strikeThrough')">S</button>
+            <button class="tool-button" id="checkbox-btn" title="Insérer une tâche/case à cocher" onclick="insertCheckbox()">✅ Tâche</button>
+        </div>
+        
+        <div id="notes-editor" contenteditable="true">
+            Sélectionnez une date pour commencer à écrire vos notes et vos tâches !
+        </div>
     </div>
     
+    <div id="save-status">
+        Sauvegarde automatique activée (Local Storage).
+    </div>
 </div>
 
 <script>
     // --- VARIABLES GLOBALES ---
-    let money = 0;
-    let clickValue = 1;
-    let gameInterval;
+    const dateInput = document.getElementById('date-input');
+    const notesEditor = document.getElementById('notes-editor');
+    const saveStatus = document.getElementById('save-status');
+    
+    let currentDateKey = ''; // Clé de sauvegarde basée sur la date
 
-    const upgrades = [
-        { id: 'lemonade', name: 'Stand de Limonade', basePrice: 15, basePerSec: 0.1, count: 0 },
-        { id: 'newspaper', name: 'Livraison de Journaux', basePrice: 100, basePerSec: 1, count: 0 },
-        { id: 'carwash', name: 'Lavage de Voitures', basePrice: 1100, basePerSec: 8, count: 0 },
-        { id: 'pizzashop', name: 'Pizzeria', basePrice: 12000, basePerSec: 47, count: 0 },
-        { id: 'startup', name: 'Startup Tech', basePrice: 130000, basePerSec: 260, count: 0 }
-    ];
+    // --- FONCTIONS DE GESTION DE LA DATE ---
 
-    // --- FONCTIONS DU JEU ---
-
-    // 1. Mise à jour de l'affichage de l'argent
-    function updateDisplay() {
-        document.getElementById('money').textContent = money.toFixed(2);
-        document.getElementById('click-value').textContent = clickValue.toFixed(2);
+    /** Obtient la date du jour au format YYYY-MM-DD et l'applique à l'input. */
+    function setInitialDate() {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0'); // Mois est 0-indexé
+        const dd = String(today.getDate()).padStart(2, '0');
         
-        const perSecValue = calculatePerSecond();
-        document.getElementById('per-sec').textContent = perSecValue.toFixed(2);
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+        handleDateChange(); // Charger les notes pour cette date
     }
 
-    // 2. Calcul des gains par seconde
-    function calculatePerSecond() {
-        return upgrades.reduce((sum, item) => {
-            const multiplier = Math.pow(1.15, item.count); // Prix augmente de 15% par achat
-            return sum + (item.basePerSec * item.count * multiplier); 
-        }, 0);
-    }
-    
-    // 3. Le clic principal
-    function doClick() {
-        money += clickValue;
-        updateDisplay();
-    }
-
-    // 4. Génération du HTML des améliorations
-    function renderUpgrades() {
-        const list = document.getElementById('upgrade-list');
-        list.innerHTML = ''; 
-
-        upgrades.forEach(item => {
-            const price = calculatePrice(item);
-            const perSec = calculateItemPerSecond(item);
-
-            const li = document.createElement('li');
-            li.className = 'upgrade-item';
-            li.innerHTML = `
-                <div class="upgrade-info">
-                    <strong>${item.name} (x${item.count})</strong>
-                    <span>Génère: $${perSec.toFixed(2)}/s</span>
-                    <span>Prochain prix: $${price.toFixed(2)}</span>
-                </div>
-                <button onclick="buyUpgrade('${item.id}')" id="btn-${item.id}">
-                    Acheter
-                </button>
-            `;
-            list.appendChild(li);
-            
-            // Mettre à jour l'état du bouton
-            updateUpgradeButton(item.id, price);
-        });
-    }
-    
-    // 5. Calcul du prix d'une amélioration
-    function calculatePrice(item) {
-        return item.basePrice * Math.pow(1.15, item.count);
-    }
-    
-    // 6. Calcul du gain/sec total pour cet item
-    function calculateItemPerSecond(item) {
-        return item.basePerSec * item.count;
-    }
-
-    // 7. Achat d'une amélioration
-    function buyUpgrade(id) {
-        const item = upgrades.find(up => up.id === id);
-        if (!item) return;
-
-        const price = calculatePrice(item);
-
-        if (money >= price) {
-            money -= price;
-            item.count++;
-            
-            // Mettre à jour le gain par clic si c'est la limonade (premier item)
-            if (item.id === 'lemonade') {
-                clickValue += 0.5;
-            }
-            
-            renderUpgrades();
-            updateDisplay();
-            saveGame(); // Sauvegarder après l'achat
-        } else {
-            alert("Pas assez d'argent !");
+    /** Gère le changement de date dans l'input. */
+    function handleDateChange() {
+        // Sauvegarder d'abord les notes de l'ancienne date
+        if (currentDateKey) {
+            saveNotes();
         }
-    }
-    
-    // 8. Mise à jour des boutons 'Acheter' (disponibilité)
-    function updateUpgradeButton(id, price) {
-        const button = document.getElementById(`btn-${id}`);
-        if (button) {
-            button.disabled = money < price;
-        }
-    }
-
-    // 9. Boucle de jeu (tick)
-    function gameLoop() {
-        const perSec = calculatePerSecond();
-        money += perSec / 10; // Ajout 10 fois par seconde (100ms)
         
-        // Mettre à jour l'affichage et les boutons
-        updateDisplay();
-        upgrades.forEach(item => {
-            const price = calculatePrice(item);
-            updateUpgradeButton(item.id, price);
-        });
+        // Définir la nouvelle clé et charger
+        currentDateKey = `journal_${dateInput.value}`;
+        loadNotes();
     }
 
     // --- FONCTIONS DE SAUVEGARDE (Local Storage) ---
 
-    function saveGame() {
-        const saveData = {
-            money: money,
-            clickValue: clickValue,
-            upgrades: upgrades.map(item => ({
-                id: item.id,
-                count: item.count
-            }))
-        };
-        // Sauvegarde au format JSON dans le stockage local du navigateur
-        localStorage.setItem('businessClickerSave', JSON.stringify(saveData));
-        console.log("Jeu sauvegardé !");
+    /** Sauvegarde le contenu de l'éditeur pour la date courante. */
+    function saveNotes() {
+        if (!currentDateKey) return;
+        
+        // Sauvegarder le contenu HTML riche
+        localStorage.setItem(currentDateKey, notesEditor.innerHTML);
+        
+        // Afficher le statut de sauvegarde
+        saveStatus.textContent = '✅ Sauvegardé automatiquement !';
+        setTimeout(() => {
+            saveStatus.textContent = 'Sauvegarde automatique activée (Local Storage).';
+        }, 2000);
     }
 
-    function loadGame() {
-        const savedData = localStorage.getItem('businessClickerSave');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            
-            money = data.money || 0;
-            clickValue = data.clickValue || 1;
-            
-            // Mise à jour des compteurs des améliorations
-            if (data.upgrades) {
-                data.upgrades.forEach(savedItem => {
-                    const gameItem = upgrades.find(up => up.id === savedItem.id);
-                    if (gameItem) {
-                        gameItem.count = savedItem.count;
-                    }
-                });
-            }
-            console.log("Jeu chargé !");
+    /** Charge le contenu pour la date courante. */
+    function loadNotes() {
+        if (!currentDateKey) return;
+        
+        const savedContent = localStorage.getItem(currentDateKey);
+        
+        if (savedContent) {
+            notesEditor.innerHTML = savedContent;
         } else {
-            console.log("Aucune sauvegarde trouvée.");
-        }
-    }
-    
-    function resetGame() {
-        if (confirm("Êtes-vous sûr de vouloir tout recommencer ? Votre progression sera perdue.")) {
-            localStorage.removeItem('businessClickerSave');
-            money = 0;
-            clickValue = 1;
-            upgrades.forEach(item => { item.count = 0; });
-            initGame();
-            alert("Jeu réinitialisé.");
+            notesEditor.innerHTML = `<em>Écrivez vos notes et tâches pour le ${dateInput.value} ici...</em>`;
         }
     }
 
-    // --- INITIALISATION ---
+    // --- FONCTIONS DE FORMATAGE DE TEXTE ---
 
-    function initGame() {
-        loadGame(); // Essayer de charger la sauvegarde au démarrage
-        
-        // Attacher l'événement de clic
-        document.getElementById('click-button').addEventListener('click', doClick);
-        
-        // Démarrer la boucle de jeu (toutes les 100ms pour un calcul par seconde précis)
-        if (gameInterval) clearInterval(gameInterval); // S'assurer qu'il n'y en a qu'un
-        gameInterval = setInterval(gameLoop, 100); 
-        
-        // Affichage initial
-        renderUpgrades();
-        updateDisplay();
+    /** Applique un formatage au texte sélectionné (gras, barré). */
+    function formatText(command) {
+        // document.execCommand est la méthode standard pour le formatage
+        document.execCommand(command, false, null);
+        notesEditor.focus(); // Remettre le focus sur l'éditeur après l'opération
+        saveNotes(); // Sauvegarder après un changement de format
     }
 
-    // Démarrer le jeu quand la page est chargée
-    window.onload = initGame;
+    /** Insère un élément de case à cocher. */
+    function insertCheckbox() {
+        // La case à cocher est insérée avec un <br> pour un nouveau paragraphe
+        document.execCommand('insertHTML', false, '<input type="checkbox" onclick="saveNotes()"> Tâche : &nbsp;');
+        notesEditor.focus();
+    }
     
+    // --- INITIALISATION DU JEU ---
+
+    function initJournal() {
+        // 1. Initialiser la date sur le jour actuel
+        setInitialDate(); 
+        
+        // 2. Écouteurs d'événements
+        dateInput.addEventListener('change', handleDateChange);
+        
+        // 3. Sauvegarde automatique après chaque frappe ou modification
+        notesEditor.addEventListener('input', saveNotes);
+        
+        // 4. Ajouter l'écouteur pour les clics sur les cases à cocher (car ils ne sont pas gérés par 'input')
+        notesEditor.addEventListener('click', (event) => {
+            if (event.target.type === 'checkbox') {
+                saveNotes();
+            }
+        });
+    }
+
+    // Démarrer l'application
+    window.onload = initJournal;
 </script>
 
 </body>
